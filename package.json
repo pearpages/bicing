@@ -10,9 +10,11 @@
     "dev": "pnpm --filter @bicing/web dev",
     "build": "pnpm --filter @bicing/web build",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r --parallel typecheck"
   },
   "devDependencies": {
-    "prettier": "3.9.8"
+    "prettier": "3.9.8",
+    "typescript": "6.0.3"
   }
 }

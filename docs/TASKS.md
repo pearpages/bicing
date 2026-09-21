@@ -7,7 +7,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 
 - [x] **T0.0** Governing docs: ARCHITECTURE.md, PRINCIPLES.md, TASKS.md, CLAUDE.md with the imports. _Done when:_ committed.
 - [x] **T0.1** pnpm workspace, `.nvmrc` 24, `packageManager`, Prettier, `.editorconfig`, `.gitignore` (data/, dist/). _Done when:_ `pnpm install` is clean.
-- [ ] **T0.2** `tsconfig.base.json` (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes, verbatimModuleSyntax), package tsconfigs, project references, TS 6.0.3 pinned. _Done when:_ `pnpm typecheck` passes on the empty packages.
+- [x] **T0.2** `tsconfig.base.json` (strict, noUncheckedIndexedAccess, exactOptionalPropertyTypes, verbatimModuleSyntax), per-package tsconfigs checked with `tsc --noEmit` via `pnpm -r` (no project references: packages ship TS source, so there is nothing to emit), `core`/`synthetic` compile without the DOM lib (enforces P12), TS 6.0.3 pinned. _Done when:_ `pnpm typecheck` passes on the empty packages.
 - [ ] **T0.3** ESLint flat config: typescript-eslint strictTypeChecked, eslint-plugin-vue, boundaries rules for the graph. _Done when:_ an illegal import (core → charts) fails lint (verified, then reverted).
 - [ ] **T0.4** Vitest root config with `test.projects`. _Done when:_ a smoke test runs per package.
 - [ ] **T0.5** `apps/web`: Vite + Vue app, CSS Modules (.module.scss), COOP/COEP headers in dev. _Done when:_ `pnpm dev` renders a shell and `crossOriginIsolated === true`.
