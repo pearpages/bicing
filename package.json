@@ -1,0 +1,18 @@
+{
+  "name": "bicing-pulse",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @bicing/web dev",
+    "build": "pnpm --filter @bicing/web build",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "devDependencies": {
+    "prettier": "3.9.8"
+  }
+}
