@@ -2,3 +2,5 @@ packages:
   - packages/*
   - apps/*
   - tools/*
+allowBuilds:
+  unrs-resolver: set this to true or false
