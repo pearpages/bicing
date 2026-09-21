@@ -11,7 +11,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T0.3** ESLint flat config: typescript-eslint strictTypeChecked, eslint-plugin-vue, boundaries rules for the graph. _Done when:_ an illegal import (core → charts) fails lint (verified, then reverted).
 - [x] **T0.4** Vitest root config with `test.projects`. _Done when:_ a smoke test runs per package.
 - [x] **T0.5** `apps/web`: Vite + Vue app, CSS Modules (.module.scss), COOP/COEP headers in dev. _Done when:_ `pnpm dev` renders a shell and `crossOriginIsolated === true`.
-- [ ] **T0.6** GitHub Actions CI: install → lint → typecheck → test → build on Node 24 with a pnpm cache. _Done when:_ the workflow file is valid (the first push shows it green).
+- [x] **T0.6** GitHub Actions CI: install → lint → typecheck → test → build on Node 24 with a pnpm cache. _Done when:_ every workflow step passes locally (no remote yet — the first green run is tracked as D1).
 - [ ] **T0.7** Multi-stage Dockerfile + nginx.conf with COOP/COEP headers. _Done when:_ `docker build` works and the headers are present.
 - [ ] **T0.8** README skeleton, ADR 0001 (Canvas/WebGL for data marks), ADR 0002 (TypeScript 6 pin). _Done when:_ committed.
 
@@ -44,4 +44,4 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 
 ## Discovered
 
-_(empty)_
+- [ ] **D1** Add a GitHub remote, push, and confirm the CI run is green (T0.6 was only verified locally).
