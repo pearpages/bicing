@@ -49,6 +49,12 @@ export interface WebGLRendererOptions {
   readonly canvas?: HTMLCanvasElement;
   readonly className?: string;
   readonly alpha?: number;
+  /**
+   * Multisample antialiasing. Off by default (ADR 0009): with millions of sub-pixel segments,
+   * MSAA made a full-extent 10M-point frame about 6× slower (100 ms instead of 16.7 ms on an M4 Pro).
+   * Worth enabling only for small datasets on dpr-1 screens.
+   */
+  readonly antialias?: boolean;
 }
 
 /**
@@ -80,7 +86,10 @@ export class WebGLRenderer implements Renderer {
   constructor(options: WebGLRendererOptions = {}) {
     this.element = options.canvas ?? document.createElement('canvas');
     if (options.className) this.element.classList.add(options.className);
-    const gl = this.element.getContext('webgl2', { antialias: true, premultipliedAlpha: true });
+    const gl = this.element.getContext('webgl2', {
+      antialias: options.antialias ?? false,
+      premultipliedAlpha: true,
+    });
     if (!gl) throw new Error('WebGL2 is not available');
     this.gl = gl;
     this.alpha = options.alpha ?? 0.6;
