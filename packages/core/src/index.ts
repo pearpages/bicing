@@ -1,3 +1,4 @@
+export { lttb } from './decimate/lttb';
 export { minMaxPerPixel } from './decimate/minmax';
 export type { Decimated } from './decimate/result';
 export { lowerBound, upperBound } from './search';

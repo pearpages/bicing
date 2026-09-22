@@ -21,7 +21,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.2** core: per-station series index (permutation + offsets) and gap segmentation. Tests.
 - [x] **T1.3** synthetic: mulberry32 PRNG, the station layout, daily profiles, closures, optional gaps, sorted output; `tools/synthetic` CLI. ADR 0003. _Done when:_ the same seed gives byte-identical output and the sort invariant holds (property test).
 - [x] **T1.4** core: `minMaxPerPixel` + example and property tests. _Done when:_ extremes, endpoints and gap boundaries are preserved.
-- [ ] **T1.5** core: `lttb` + example and property tests. ADR 0006. _Done when:_ the output size is ≤ the threshold, the endpoints are kept, and n ≤ threshold gives the identity.
+- [x] **T1.5** core: `lttb` + example and property tests. ADR 0006. _Done when:_ the output size is ≤ the threshold, the endpoints are kept, and n ≤ threshold gives the identity.
 - [ ] **T1.6** data: typed protocol, worker `generate` with transfer lists, client with request ids. ADR 0005. _Done when:_ a test shows that the transferred buffers are detached on the sender.
 - [ ] **T1.7** renderers: the `Renderer` interface, DPR sizing, `SvgRenderer` (1M cap), `CanvasRenderer`. ADR 0004.
 - [ ] **T1.8** renderers: `WebGLRenderer`: GPU buffers uploaded once, integer `t` attribute with origin subtraction, color-ramp texture from a d3 interpolator, context-loss handling.
