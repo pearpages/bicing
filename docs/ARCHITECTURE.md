@@ -36,18 +36,35 @@ Columnar, typed arrays only; no arrays of objects on any hot path.
 ## Data flow (Phase 1)
 
 UI control → `data` client → worker generates the columns → the `ArrayBuffer`s are **transferred** (zero-copy) → a
-store handle (marked non-reactive) → `TimeSeriesChart.setData()` → decimation over the visible slice → `Renderer.setData()`
-(the GPU upload happens once) → `Renderer.render(viewport)` on each frame (only the uniforms change).
+store handle (marked non-reactive) → `TimeSeriesChart.setData()`, which builds per-station series **once**
+(`buildStationSeries`: in-service rows only, contiguous `x`/`y` per station) → gap-free lines → optional decimation of
+the visible slice (ADR 0006) → `Renderer.setData()` (the GPU upload happens here) → `Renderer.render(viewport)` on each frame
+(only the uniforms or projection change).
+
+Rows whose status isn't "in service" are **left out**, not drawn as zero bikes. A closure therefore shows up as a gap
+in the line, like a missing day (P9).
 
 ## Chart anatomy
 
-Each chart stacks three layers in a single positioned container:
+Each chart is a framework-agnostic controller in `@bicing/charts` that owns this DOM inside a host element:
 
-1. **Data layer**: `<canvas>` (Canvas/WebGL) or `<svg>` (baseline). Owned by a `Renderer`.
-2. **Axes layer**: `<svg>`, drawn with d3-axis.
-3. **Interaction overlay**: a transparent element that carries d3-zoom / d3-brush and hover.
-   A per-chart `FrameScheduler` coalesces requests into one `requestAnimationFrame` and redraws only the dirty layers.
-   Canvas backing stores are sized `cssSize × devicePixelRatio`. A ResizeObserver drives the resize.
+```
+div.bp-chart
+  div.bp-chart__plot       plot area; its inset (the axis margins) is defined in CSS
+    <canvas|svg>.bp-chart__data   owned by the Renderer
+  svg.bp-chart__axes       d3-axis, translated to the measured plot offset
+  div.bp-chart__overlay    same box as the plot; carries d3-zoom (later d3-brush) and hover
+```
+
+- **CSS owns layout, JS measures it (P16).** `@bicing/charts/styles.css` (BEM class names, themed through CSS custom
+  properties) positions the layers. The controller never writes inline styles. A `ResizeObserver` on the plot
+  element reports its size, and a `matchMedia` listener catches devicePixelRatio changes (e.g. moving the window to
+  another display).
+- A per-chart `FrameScheduler` coalesces invalidations into one `requestAnimationFrame` and redraws only the dirty
+  layers (`data`, `axes`, `overlay`).
+- The x-axis uses `d3-scale`'s `scaleUtc` and is labeled UTC. Barcelona-local time is a Phase 2 concern.
+- Colors come from an interpolator the app provides per theme (a single-hue sequential ramp for "mean
+  occupancy", following the dataviz method). The chart doesn't hardcode a palette.
 
 ## Rendering strategies
 
