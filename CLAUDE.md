@@ -24,7 +24,14 @@ These three files are the contract. Read them before working. Follow them, and a
 
 ## Commands
 
-_(filled in as scaffolding lands)_
+Shells here must run on the mise toolchain (Node 24, pnpm 12): prefix commands with `eval "$(mise env -s bash)"`
+if `node -v` doesn't print v24.
+
+- `pnpm install` · `pnpm dev` (apps/web) · `pnpm build`
+- `pnpm run lint` · `pnpm run typecheck` (root tsc + `pnpm -r typecheck`, vue-tsc for apps/web) · `pnpm run format`
+- `pnpm test -- --run` (never bare `pnpm test`: that's watch mode)
+- `docker build -t bicing-pulse .`. The local runtime is colima (`colima start`), with no buildx, so keep the Dockerfile
+  free of BuildKit-only syntax.
 
 ## Session log
 
