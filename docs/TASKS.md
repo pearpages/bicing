@@ -12,7 +12,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T0.4** Vitest root config with `test.projects`. _Done when:_ a smoke test runs per package.
 - [x] **T0.5** `apps/web`: Vite + Vue app, CSS Modules (.module.scss), COOP/COEP headers in dev. _Done when:_ `pnpm dev` renders a shell and `crossOriginIsolated === true`.
 - [x] **T0.6** GitHub Actions CI: install → lint → typecheck → test → build on Node 24 with a pnpm cache. _Done when:_ every workflow step passes locally (no remote yet — the first green run is tracked as D1).
-- [ ] **T0.7** Multi-stage Dockerfile + nginx.conf with COOP/COEP headers. _Done when:_ `docker build` works and the headers are present.
+- [x] **T0.7** Multi-stage Dockerfile + nginx.conf with COOP/COEP headers. _Done when:_ `docker build` works and the headers are present.
 - [ ] **T0.8** README skeleton, ADR 0001 (Canvas/WebGL for data marks), ADR 0002 (TypeScript 6 pin). _Done when:_ committed.
 
 ## Phase 1 — Rendering core with synthetic data
