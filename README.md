@@ -5,8 +5,10 @@ An interactive explorer of Barcelona's public bike-sharing history, built to sho
 > **Rendering millions of data points smoothly in the browser, with D3 doing the math and
 > Canvas 2D / WebGL2 doing the drawing.**
 
-Status: **Phase 0 (scaffolding) complete.** Phase 1 (rendering core on synthetic data) is in
-progress. See [docs/TASKS.md](docs/TASKS.md).
+Status: **Phase 1 complete.** A rendering core on seeded synthetic data: SVG, Canvas 2D and WebGL2 renderers behind
+one interface, min/max and LTTB downsampling, a D3-driven time series with zoom and hover, and a benchmark mode.
+**WebGL2 holds 60 fps at 10M points** on the reference machine, while SVG drops to 9 fps at 1M ([Benchmarks](#benchmarks)).
+Phase 2 brings the real Open Data BCN history. See [docs/TASKS.md](docs/TASKS.md).
 
 ## What to look at
 

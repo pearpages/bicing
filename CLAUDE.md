@@ -37,3 +37,13 @@ if `node -v` doesn't print v24.
 
 - **2026-09-21**: Planned Phases 0–1 (React → Vue per user request; TS 6.0.3 pinned because typescript-eslint
   doesn't support TS 7 yet). Wrote the governing docs (T0.0).
+- **2026-09-22**: Phases 0 and 1 done (T0.0–T1.16). Highlights:
+  - Monorepo, strict TS 6, boundary lint, Vitest projects, CI, Docker/nginx with COOP/COEP.
+  - core (store, series, min/max + LTTB with property tests), synthetic generator, a typed worker protocol with
+    zero-copy transfer, SVG/Canvas/WebGL renderers, a TimeSeriesChart with zoom and hover, Vue bindings, and benchmark mode.
+  - Measured: WebGL2 60 fps at 10M, SVG 9 fps at 1M. The first run missed the target until MSAA was found to cost 6×
+    (ADR 0009).
+  - Lessons: anchor ignore patterns (`data/` once hid `packages/data`); pnpm 12 needs explicit `allowBuilds`, and
+    `autoInstallPeers: false` keeps too-new optional peers out; automated Chrome tabs are often hidden, so rAF stops and
+    benchmarks need a foreground window; run benchmarks on `vite preview` with `?automation`.
+  - Pending: the Discovered list D1–D8 in docs/TASKS.md, then Phase 2 (T2.1–T2.8).

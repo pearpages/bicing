@@ -69,15 +69,24 @@ div.bp-chart
 
 ## Rendering strategies
 
-- **SVG baseline**: one `<path>` per series. Capped at 1M points, beyond that it's reported as skipped.
-- **Canvas 2D**: one path per series, drawn through the current transform. Decimated input.
-- **WebGL2**: vertex buffers are uploaded once, with integer attributes (`t` Uint32 via `vertexAttribIPointer`).
-  The x-origin is subtracted in the shader to keep float32 precision. Color comes from a 256×1 ramp texture
-  built from a D3 color interpolator.
+- **SVG baseline**: one `<path>` per line, `d` rebuilt every frame, no culling (a realistic D3 baseline). Capped at 1M
+  points; beyond that it's reported as skipped.
+- **Canvas 2D**: each line is culled to its visible range by binary search. Lines are grouped into 32 palette colors, with
+  one `stroke()` per color. Drawn in CSS pixels under a dpr transform.
+- **WebGL2**: vertex buffers are uploaded once, with integer attributes (`t` Uint32 via `vertexAttribIPointer`, 6
+  bytes/point). The x-origin is split into an integer and a fraction, so the shader subtracts exactly before
+  converting to float. Color comes from a 256×1 ramp texture built from a D3 interpolator. Each frame issues one
+  `WEBGL_multi_draw` call over the culled lines. **No MSAA** (ADR 0009).
+- All three implement one `Renderer` interface (ADR 0004). Benchmark results are in the README.
+
+## Hover
+
+Per-series binary search at the pointer's time (O(stations × log n), exact on full-resolution data, never inside a gap),
+drawn in the SVG layer: crosshair, marker and tooltip (ADR 0008). Flatbush is reserved for the Phase 2 map.
 
 ## Downsampling
 
-- **min/max per pixel column**: exact visual envelope, O(n) over the visible slice. The default for lines.
+- **min/max per pixel column**: exact visual envelope, O(n) over the visible slice. The default mode when downsampling is on.
 - **LTTB**: keeps the shape at a fixed point budget. Used where the point count matters more than the envelope.
 - Both return **indices** into the source columns, recomputed on zoom over the visible slice only.
 - Phase 2 adds precomputed multi-resolution aggregates (5 min / 1 h / 1 day), picked by the visible span.

@@ -32,11 +32,21 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.13** web: benchmark mode (renderer × size × decimation), `PerfOverlay` (FPS, frame p50/p95, long animation frames, memory), time-to-first-chart.
 - [x] **T1.14** web: scripted 5-second pan/zoom run → results table (copyable Markdown). _Note:_ unit-tested (path, Markdown); the first complete live run happens in T1.15, which needs a visible browser window (background tabs pause rAF).
 - [x] **T1.15** Run the benchmarks and record the results + machine in the README. _Done when:_ WebGL is ~60 fps at 10M, and SVG degradation is shown with numbers.
-- [ ] **T1.16** Phase 1 summary in README / CLAUDE.md. Draft Phase 2 tasks here.
+- [x] **T1.16** Phase 1 summary in README / CLAUDE.md. Draft Phase 2 tasks here.
 
-## Phase 2 — Real data (to be broken down at the end of Phase 1)
+## Phase 2 — Real data
 
-- [ ] prepare-data CLI (CKAN discovery, 7z, DuckDB, Parquet, gaps.json) · Parquet loading in a worker · multi-resolution aggregates · gap rendering · map view (hover picking with flatbush over station positions).
+Check versions before adding anything (P25). Parquet in the browser: compare `hyparquet` (pure JS, range requests),
+`parquet-wasm` and DuckDB-WASM (only dev builds were published as of 2026-09) in an ADR before choosing.
+
+- [ ] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
+- [ ] **T2.2** Extract the monthly 7z archives; read the JSON snapshots with DuckDB (Node); join the station information; map IDs to dense indices; cast to the compact types; sort by (t, stationIdx). _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture.
+- [ ] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
+- [ ] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
+- [ ] **T2.5** Multi-resolution aggregates (5 min / 1 h / 1 day min-max-mean per station), picked by the visible span, so zoomed-out views stay small (feeds D3, D5).
+- [ ] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
+- [ ] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
+- [ ] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
 
 ## Phase 3 — Linked views (to be broken down later)
 
