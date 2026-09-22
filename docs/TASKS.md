@@ -27,7 +27,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.8** renderers: `WebGLRenderer`: GPU buffers uploaded once, integer `t` attribute with origin subtraction, color-ramp texture from a d3 interpolator, context-loss handling.
 - [x] **T1.9** charts: `FrameScheduler` (rAF coalescing, dirty layers) + tests with a fake rAF.
 - [x] **T1.10** charts: `TimeSeriesChart`: layered DOM, d3-scale/axis/zoom, decimation on zoom over the visible slice, renderer swap.
-- [ ] **T1.11** charts: hover picking with flatbush over the drawn vertices.
+- [ ] **T1.11** charts: hover picking by per-series binary search at the pointer's time (O(stations × log n), exact on full-resolution data, no index to rebuild on zoom), with a crosshair, point marker and SVG tooltip. ADR 0008. Flatbush moves to the Phase 2 map view, where points are scattered in 2D. _Done when:_ picking is tested (nearest line, gaps never picked) and hover works in the browser.
 - [ ] **T1.12** vue: `useTimeSeriesChart` composable + `TimeSeriesChart.vue`, non-reactive data. ADR 0007. _Done when:_ a test asserts that the data is not a Proxy.
 - [ ] **T1.13** web: benchmark mode (renderer × size × decimation), `PerfOverlay` (FPS, frame p50/p95, long animation frames, memory), time-to-first-chart.
 - [ ] **T1.14** web: scripted 5-second pan/zoom run → results table (copyable Markdown).
@@ -36,7 +36,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 
 ## Phase 2 — Real data (to be broken down at the end of Phase 1)
 
-- [ ] prepare-data CLI (CKAN discovery, 7z, DuckDB, Parquet, gaps.json) · Parquet loading in a worker · multi-resolution aggregates · gap rendering · map view.
+- [ ] prepare-data CLI (CKAN discovery, 7z, DuckDB, Parquet, gaps.json) · Parquet loading in a worker · multi-resolution aggregates · gap rendering · map view (hover picking with flatbush over station positions).
 
 ## Phase 3 — Linked views (to be broken down later)
 
