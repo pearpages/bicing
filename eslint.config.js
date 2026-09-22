@@ -43,6 +43,11 @@ export default defineConfig(
       // eslint-plugin-vue already sets vue-eslint-parser; it delegates <script lang="ts"> here.
       parserOptions: { parser: tseslint.parser },
     },
+    rules: {
+      // Type-based optional props are already `undefined` when absent, and an explicit `undefined`
+      // default is rejected by exactOptionalPropertyTypes. The rule targets runtime-declared props.
+      'vue/require-default-prop': 'off',
+    },
   },
   {
     rules: {
