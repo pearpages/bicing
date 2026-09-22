@@ -1,22 +1,52 @@
+@use '@fontsource-variable/public-sans';
+
+// Design tokens. Blue is reserved for data; chrome stays in cool civic greys.
 :root {
-  color-scheme: light dark;
-  --color-bg: #f7f7f5;
+  color-scheme: light;
+  --color-bg: #eef1f4;
   --color-surface: #ffffff;
-  --color-text: #1b1d21;
-  --color-muted: #5f6570;
-  --color-border: #dcdde0;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+  --color-ink: #15222d;
+  --color-muted: #5b6b78;
+  --color-rule: #d4dbe1;
+  --color-focus: #15222d;
+  --color-over-budget: #b3261e;
+  --color-trace: #15222d;
+  --font-sans: 'Public Sans Variable', system-ui, sans-serif;
+
+  // Hand the theme to the chart layers (@bicing/charts/styles.css).
+  --bp-chart-surface: var(--color-surface);
+  --bp-chart-axis-text: var(--color-muted);
+  --bp-chart-axis-line: var(--color-muted);
+  --bp-chart-grid: rgb(21 34 45 / 0.07);
+  --bp-chart-tooltip-bg: var(--color-surface);
+  --bp-chart-tooltip-border: var(--color-rule);
+  --bp-chart-tooltip-text: var(--color-ink);
+  --bp-chart-crosshair: rgb(21 34 45 / 0.45);
+  --bp-chart-font: 11px var(--font-sans);
+}
+
+@mixin dark {
+  color-scheme: dark;
+  --color-bg: #0f1720;
+  --color-surface: #16212c;
+  --color-ink: #e6edf3;
+  --color-muted: #93a4b3;
+  --color-rule: #26333f;
+  --color-focus: #e6edf3;
+  --color-over-budget: #f2b8b5;
+  --color-trace: #e6edf3;
+  --bp-chart-grid: rgb(230 237 243 / 0.07);
+  --bp-chart-crosshair: rgb(230 237 243 / 0.45);
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #121316;
-    --color-surface: #1a1c20;
-    --color-text: #e8e9eb;
-    --color-muted: #9aa0aa;
-    --color-border: #2c2f35;
+  :root:not([data-theme='light']) {
+    @include dark;
   }
+}
+
+:root[data-theme='dark'] {
+  @include dark;
 }
 
 *,
@@ -34,6 +64,21 @@ body,
 
 body {
   background: var(--color-bg);
-  color: var(--color-text);
+  color: var(--color-ink);
   font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.45;
+  // Figures line up in the live readouts without a monospace face.
+  font-variant-numeric: tabular-nums;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }

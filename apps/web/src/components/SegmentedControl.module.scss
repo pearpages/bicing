@@ -1,0 +1,73 @@
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.legend {
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.options {
+  display: inline-flex;
+  border: 1px solid var(--color-rule);
+  border-radius: 6px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.option {
+  position: relative;
+  display: inline-flex;
+
+  & + & {
+    border-left: 1px solid var(--color-rule);
+  }
+}
+
+// Visually hidden but focusable: the label is the visible control.
+.input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+.text {
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--color-ink);
+}
+
+.input:checked + .text {
+  background: var(--color-ink);
+  color: var(--color-surface);
+}
+
+.input:focus-visible + .text {
+  outline: 2px solid var(--color-focus);
+  outline-offset: -4px;
+}
+
+.muted .text {
+  color: var(--color-muted);
+}
+
+.input:checked + .text,
+.muted .input:checked + .text {
+  color: var(--color-surface);
+}
+
+.group:disabled .text {
+  opacity: 0.5;
+}

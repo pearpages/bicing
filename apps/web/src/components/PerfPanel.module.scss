@@ -1,0 +1,80 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+  padding: 16px;
+  border-left: 1px solid var(--color-rule);
+  background: var(--color-surface);
+  overflow-y: auto;
+}
+
+.fps {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 0;
+}
+
+.fpsValue {
+  font-size: 44px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.fpsUnit {
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+// The one place the chrome uses color: the p95 frame is well over budget.
+.fpsBad .fpsValue {
+  color: var(--color-over-budget);
+}
+
+.heading {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+
+  dt {
+    color: var(--color-muted);
+  }
+
+  dd {
+    margin: 0;
+    font-weight: 500;
+  }
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.warning {
+  color: var(--color-over-budget);
+}
+
+// Stacks below the chart on narrow screens (see App.module.scss), so the rule moves to the top edge.
+@media (max-width: 860px) {
+  .panel {
+    border-top: 1px solid var(--color-rule);
+    border-left: 0;
+  }
+}

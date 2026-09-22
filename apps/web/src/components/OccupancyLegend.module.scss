@@ -1,0 +1,24 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.scale {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bar {
+  width: 160px;
+  height: 8px;
+}
+
+.title,
+.end {
+  white-space: nowrap;
+}
