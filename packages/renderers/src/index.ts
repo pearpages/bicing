@@ -1,1 +1,9 @@
-export {};
+export { CanvasRenderer } from './canvas/CanvasRenderer';
+export type { CanvasRendererOptions } from './canvas/CanvasRenderer';
+export { backingStoreSize, resizeCanvas } from './dpr';
+export { projectionFor } from './projection';
+export type { Projection } from './projection';
+export { SvgRenderer } from './svg/SvgRenderer';
+export type { SvgRendererOptions } from './svg/SvgRenderer';
+export { EMPTY_LINES } from './types';
+export type { LineSeriesData, Renderer, RendererKind, RenderStats, Viewport } from './types';

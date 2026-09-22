@@ -6,3 +6,6 @@ allowBuilds:
   '@parcel/watcher': false
   esbuild: false
   unrs-resolver: false
+# Vitest lists jsdom/happy-dom as optional peers; auto-installing them pulled the newest jsdom into
+# every package. Packages that need a DOM declare it themselves (packages/renderers).
+autoInstallPeers: false

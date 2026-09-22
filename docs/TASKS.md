@@ -23,7 +23,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.4** core: `minMaxPerPixel` + example and property tests. _Done when:_ extremes, endpoints and gap boundaries are preserved.
 - [x] **T1.5** core: `lttb` + example and property tests. ADR 0006. _Done when:_ the output size is ≤ the threshold, the endpoints are kept, and n ≤ threshold gives the identity.
 - [x] **T1.6** data: typed protocol, worker `generate` with transfer lists, client with request ids. ADR 0005. _Done when:_ a test shows that the transferred buffers are detached on the sender.
-- [ ] **T1.7** renderers: the `Renderer` interface, DPR sizing, `SvgRenderer` (1M cap), `CanvasRenderer`. ADR 0004.
+- [x] **T1.7** renderers: the `Renderer` interface, DPR sizing, `SvgRenderer` (1M cap), `CanvasRenderer`. ADR 0004.
 - [ ] **T1.8** renderers: `WebGLRenderer`: GPU buffers uploaded once, integer `t` attribute with origin subtraction, color-ramp texture from a d3 interpolator, context-loss handling.
 - [ ] **T1.9** charts: `FrameScheduler` (rAF coalescing, dirty layers) + tests with a fake rAF.
 - [ ] **T1.10** charts: `TimeSeriesChart`: layered DOM, d3-scale/axis/zoom, decimation on zoom over the visible slice, renderer swap.
