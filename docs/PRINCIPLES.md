@@ -37,7 +37,9 @@ don't route around it.
 ## Code
 
 - **P14 Strict types.** `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`; no `any`, no
-  non-null assertions to silence the checker.
+  non-null assertions (`!`). One narrow exception: a typed-array read whose index is bounded by the enclosing loop
+  or by a binary search may be written `arr[i] as number`, because the checker can't see loop bounds. Anywhere
+  else, handle `undefined` explicitly. The pattern stays greppable, and tests must cover the boundaries.
 - **P15 Comments explain why.** If a comment says _what_, rename or restructure instead.
 - **P16 Styles in stylesheets.** CSS Modules in `.module.scss` files. No inline styles, style objects or style bindings.
   (Canvas `width`/`height` attributes are backing-store sizing, not styling.)

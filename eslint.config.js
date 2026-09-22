@@ -48,6 +48,8 @@ export default defineConfig(
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/no-non-null-assertion': 'error',
+      // Would rewrite the bounded typed-array reads that P14 allows (`arr[i] as number`) into `arr[i]!`.
+      '@typescript-eslint/non-nullable-type-assertion-style': 'off',
       '@typescript-eslint/consistent-type-imports': 'error',
     },
   },
