@@ -65,6 +65,30 @@ describe('buildStationSeries', () => {
     expect(r.meanFill[0]).toBeCloseTo(0.5);
   });
 
+  test('precomputes gap-free lines per station, and the extents', () => {
+    const r = buildStationSeries(
+      store([
+        [0, 0, 1, 0, Status.InService],
+        [0, 1, 7, 0, Status.InService],
+        [5, 0, 2, 0, Status.InService],
+        [100, 0, 3, 0, Status.InService],
+        [100, 1, 9, 0, Status.InService],
+      ]),
+      stationsWithCapacity([10, 10]),
+      15,
+    );
+    // Station 0: [0, 5] | gap | [100]. Station 1: [0] | gap | [100].
+    expect(Array.from(r.lineStarts)).toEqual([0, 2, 3, 4, 5]);
+    expect(Array.from(r.lineStation)).toEqual([0, 0, 1, 1]);
+    expect([r.xMin, r.xMax, r.yMax, r.maxGap]).toEqual([0, 100, 9, 15]);
+  });
+
+  test('empty series have zero extents and no lines', () => {
+    const r = buildStationSeries(allocateObservations(0), stationsWithCapacity([10]));
+    expect(Array.from(r.lineStarts)).toEqual([0]);
+    expect([r.xMin, r.xMax, r.yMax]).toEqual([0, 0, 0]);
+  });
+
   test('a zero-capacity station does not divide by zero', () => {
     const r = buildStationSeries(
       store([[0, 0, 0, 0, Status.InService]]),

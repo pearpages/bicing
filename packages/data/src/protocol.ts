@@ -47,6 +47,8 @@ export function transferList(
     series.y,
     series.offsets,
     series.meanFill,
+    series.lineStarts,
+    series.lineStation,
   ];
   // Distinct buffers only: transferring the same buffer twice throws a DataCloneError.
   return [...new Set(views.map((view) => view.buffer as ArrayBuffer))];

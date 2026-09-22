@@ -4,7 +4,7 @@ export type { Decimated } from './decimate/result';
 export { lowerBound, upperBound } from './search';
 export { buildSeriesIndex, gather, segmentStarts } from './series';
 export type { SeriesIndex } from './series';
-export { buildStationSeries } from './station-series';
+export { buildStationSeries, DEFAULT_MAX_GAP_MINUTES } from './station-series';
 export type { StationSeries } from './station-series';
 export { allocateObservations, timeSlice } from './store';
 export { EPOCH_MS, MINUTES_PER_DAY, MS_PER_MINUTE, toEpochMs, toMinutes } from './time';

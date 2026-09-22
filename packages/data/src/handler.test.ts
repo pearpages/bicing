@@ -11,8 +11,8 @@ describe('handleRequest', () => {
     if (response.type !== 'generated') throw new Error('expected a generated response');
     expect(response.id).toBe(7);
     expect(response.observations.length).toBe(1_000);
-    // 6 observation columns + lat, lon, capacity + 4 series arrays.
-    expect(transfer).toHaveLength(13);
+    // 6 observation columns + lat, lon, capacity + 6 series arrays.
+    expect(transfer).toHaveLength(15);
     expect(response.series.offsets).toHaveLength(response.stations.length + 1);
   });
 

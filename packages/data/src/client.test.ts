@@ -43,6 +43,12 @@ const series = {
   y: new Uint8Array(0),
   offsets: Uint32Array.of(0),
   meanFill: new Float32Array(0),
+  lineStarts: Uint32Array.of(0),
+  lineStation: new Uint16Array(0),
+  maxGap: 15,
+  xMin: 0,
+  xMax: 0,
+  yMax: 0,
 };
 
 function generated(id: number, rows: number): WorkerResponse {
