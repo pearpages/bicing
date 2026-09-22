@@ -7,7 +7,8 @@ import {
 } from '@bicing/renderers';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { scaleLinear, scaleUtc } from 'd3-scale';
-import { select } from 'd3-selection';
+import { pointer, select } from 'd3-selection';
+import { utcFormat } from 'd3-time-format';
 import {
   zoom,
   zoomIdentity,
@@ -16,10 +17,17 @@ import {
   type ZoomTransform,
 } from 'd3-zoom';
 import { createChartDom, type ChartDom } from './layers';
+import { pickAt, type Hit } from './picking';
 import { decimatedLines, fullLines, visiblePointCount, type Decimation } from './lines';
 import { FrameScheduler, type FrameClock } from './scheduler';
 
-type Layer = 'data' | 'axes';
+type Layer = 'data' | 'axes' | 'overlay';
+
+/** How far (in CSS px) the pointer may be from a line and still pick it. */
+const PICK_RADIUS_PX = 24;
+const TOOLTIP_LINE_HEIGHT = 16;
+const TOOLTIP_PADDING = 8;
+const formatTime = utcFormat('%a %d %b %Y, %H:%M UTC');
 type Domain = readonly [number, number];
 
 /**
@@ -57,6 +65,8 @@ export interface TimeSeriesChartOptions {
   /** The narrowest zoom, in minutes. */
   readonly minSpanMinutes?: number;
   readonly label?: string;
+  /** Tooltip lines for a hovered sample. The app knows station names; the chart only knows indices. */
+  readonly describe?: (hit: Hit) => readonly string[];
   /** Visible points above which a gesture keeps the stale decimation. Defaults to 2M (ADR 0006). */
   readonly liveDecimationBudget?: number;
   /** For tests. Defaults to requestAnimationFrame. */
@@ -79,6 +89,10 @@ export class TimeSeriesChart {
   private readonly liveBudget: number;
   private readonly frameListeners = new Set<Listener<FrameReport>>();
   private readonly viewListeners = new Set<Listener<Domain>>();
+  private readonly hoverListeners = new Set<Listener<Hit | null>>();
+  private readonly describe: (hit: Hit) => readonly string[];
+  private pointerAt: readonly [number, number] | null = null;
+  private hit: Hit | null = null;
 
   private renderer: Renderer;
   private decimation: Decimation;
@@ -105,6 +119,13 @@ export class TimeSeriesChart {
     this.colorScale = options.colorScale ?? (() => 'rgb(42, 120, 214)');
     this.minSpan = options.minSpanMinutes ?? 30;
     this.liveBudget = options.liveDecimationBudget ?? LIVE_DECIMATION_BUDGET;
+    this.describe =
+      options.describe ??
+      ((hit) => [
+        `Station ${String(hit.station + 1)}`,
+        formatTime(new Date(toEpochMs(hit.t))),
+        `${String(hit.y)} bikes`,
+      ]);
     this.scheduler = new FrameScheduler<Layer>((dirty) => {
       this.draw(dirty);
     }, options.clock);
@@ -119,13 +140,22 @@ export class TimeSeriesChart {
       })
       .on('zoom', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
         this.transform = event.transform;
-        this.scheduler.invalidate('data', 'axes');
+        this.scheduler.invalidate('data', 'axes', 'overlay');
         this.emitView();
       })
       .on('end', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
         if (event.sourceEvent) this.setInteracting(false);
       });
-    select(this.dom.overlay).call(this.zoomBehavior);
+    select(this.dom.overlay)
+      .call(this.zoomBehavior)
+      .on('pointermove.hover', (event: PointerEvent) => {
+        this.pointerAt = pointer(event, this.dom.overlay);
+        this.scheduler.invalidate('overlay');
+      })
+      .on('pointerleave.hover', () => {
+        this.pointerAt = null;
+        this.scheduler.invalidate('overlay');
+      });
 
     this.resizeObserver =
       typeof ResizeObserver === 'function'
@@ -219,6 +249,12 @@ export class TimeSeriesChart {
     return () => this.frameListeners.delete(listener);
   }
 
+  /** The picked sample under the pointer, or null. Fires only when it changes. */
+  onHover(listener: Listener<Hit | null>): () => void {
+    this.hoverListeners.add(listener);
+    return () => this.hoverListeners.delete(listener);
+  }
+
   onView(listener: Listener<Domain>): () => void {
     this.viewListeners.add(listener);
     return () => this.viewListeners.delete(listener);
@@ -247,6 +283,7 @@ export class TimeSeriesChart {
     this.dom.root.remove();
     this.frameListeners.clear();
     this.viewListeners.clear();
+    this.hoverListeners.clear();
   }
 
   private mountRenderer(): void {
@@ -282,6 +319,59 @@ export class TimeSeriesChart {
     const domain = this.domain;
     if (dirty.has('data')) this.drawData(domain);
     if (dirty.has('axes')) this.drawAxes(domain);
+    if (dirty.has('overlay')) this.drawHover(domain);
+  }
+
+  private drawHover(domain: Domain): void {
+    const { hover } = this.dom;
+    const { series, pointerAt } = this;
+    // Hover is off during gestures: the tooltip would jitter, and panning is the user's focus.
+    const hit =
+      series && pointerAt && !this.interacting
+        ? pickAt(
+            series,
+            domain[0] + (pointerAt[0] / this.width) * (domain[1] - domain[0]),
+            ((this.height - pointerAt[1]) / this.height) * this.yTop(),
+            (PICK_RADIUS_PX / this.height) * this.yTop(),
+          )
+        : null;
+    if (hit?.index !== this.hit?.index) {
+      this.hit = hit;
+      for (const listener of this.hoverListeners) listener(hit);
+    }
+    if (!hit || !pointerAt) {
+      hover.group.setAttribute('visibility', 'hidden');
+      return;
+    }
+
+    const left = this.dom.plot.offsetLeft;
+    const top = this.dom.plot.offsetTop;
+    const px = ((hit.t - domain[0]) / (domain[1] - domain[0])) * this.width;
+    const py = this.height - (hit.y / this.yTop()) * this.height;
+    hover.group.setAttribute('visibility', 'visible');
+    hover.group.setAttribute('transform', `translate(${String(left)},${String(top)})`);
+    setAttributes(hover.crosshair, { x1: px, x2: px, y1: 0, y2: this.height });
+    setAttributes(hover.marker, { cx: px, cy: py });
+    hover.marker.setAttribute('fill', this.colorScale(series?.meanFill[hit.station] ?? 0));
+
+    const lines = this.describe(hit);
+    hover.tooltipText.replaceChildren(
+      ...lines.map((text, i) => {
+        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
+        setAttributes(tspan, { x: TOOLTIP_PADDING, dy: i === 0 ? 0 : TOOLTIP_LINE_HEIGHT });
+        tspan.textContent = text;
+        return tspan;
+      }),
+    );
+    // Text can't be measured before layout in every environment, so estimate from the longest line.
+    const width = Math.max(...lines.map((l) => l.length)) * 6.6 + TOOLTIP_PADDING * 2;
+    const height = lines.length * TOOLTIP_LINE_HEIGHT + TOOLTIP_PADDING;
+    setAttributes(hover.tooltipBox, { width, height });
+    setAttributes(hover.tooltipText, { y: TOOLTIP_PADDING + 11 });
+    // Right of the point by default. Flip left or up when the tooltip would leave the plot.
+    const tx = px + 12 + width > this.width ? px - 12 - width : px + 12;
+    const ty = Math.min(Math.max(0, py - height / 2), this.height - height);
+    hover.tooltip.setAttribute('transform', `translate(${String(tx)},${String(ty)})`);
   }
 
   private drawData(domain: Domain): void {
@@ -400,4 +490,8 @@ export class TimeSeriesChart {
     this.uploadedKey = null;
     this.scheduler.invalidate('data');
   };
+}
+
+function setAttributes(element: Element, attributes: Record<string, number>): void {
+  for (const [name, value] of Object.entries(attributes)) element.setAttribute(name, String(value));
 }

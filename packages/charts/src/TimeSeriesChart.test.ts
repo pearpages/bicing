@@ -190,6 +190,41 @@ describe('TimeSeriesChart', () => {
     expect(chart.rendererKind).toBe('webgl');
   });
 
+  test('hover picks a sample, shows the described tooltip, and hides on leave', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    hosts.push(host);
+    const { clock, frame } = manualClock();
+    const chart = new TimeSeriesChart(host, {
+      renderer: fakeRenderer().renderer,
+      clock,
+      describe: (hit) => [`station ${String(hit.station)}`, `${String(hit.y)} bikes`],
+    });
+    chart.resize(400, 200);
+    chart.setData(dataset(2_000));
+    const hits: unknown[] = [];
+    chart.onHover((hit) => hits.push(hit));
+    frame();
+
+    const overlay = host.querySelector('.bp-chart__overlay');
+    const group = host.querySelector('.bp-chart__hover');
+    // jsdom has no layout, so the overlay sits at (0, 0) and client coordinates are plot coordinates.
+    overlay?.dispatchEvent(
+      new MouseEvent('pointermove', { clientX: 200, clientY: 100, bubbles: true }),
+    );
+    frame();
+    expect(hits.at(-1)).toMatchObject({ station: expect.any(Number) as number });
+    expect(group?.getAttribute('visibility')).toBe('visible');
+    expect(host.querySelector('.bp-chart__tooltip-text')?.textContent).toMatch(
+      /^station \d+\d+ bikes$/,
+    );
+
+    overlay?.dispatchEvent(new MouseEvent('pointerleave', { bubbles: true }));
+    frame();
+    expect(hits.at(-1)).toBeNull();
+    expect(group?.getAttribute('visibility')).toBe('hidden');
+  });
+
   test('destroy removes the DOM and stops drawing', () => {
     const { chart, host, fake, frame } = setup();
     chart.setData(dataset(5_000));

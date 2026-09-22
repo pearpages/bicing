@@ -12,3 +12,4 @@ supersedes the old one, and mark the old one `Superseded by NNNN`.
 | [0004](0004-renderer-interface-upload-once.md) | One Renderer interface; expensive work in setData, cheap work in render | Accepted |
 | [0005](0005-handwritten-worker-protocol.md)    | A hand-written, typed worker protocol instead of Comlink                | Accepted |
 | [0006](0006-decimation-strategy.md)            | Decimation: min/max per pixel by default, LTTB for fixed budgets        | Accepted |
+| [0008](0008-hover-picking-by-binary-search.md) | Time-series hover by per-series binary search, not a spatial index      | Accepted |

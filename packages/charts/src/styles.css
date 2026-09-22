@@ -12,6 +12,11 @@
   --bp-chart-axis-line: currentColor;
   --bp-chart-grid: rgb(128 128 128 / 0.18);
   --bp-chart-font: 11px system-ui, sans-serif;
+  --bp-chart-surface: #fcfcfb;
+  --bp-chart-crosshair: rgb(128 128 128 / 0.6);
+  --bp-chart-tooltip-bg: #ffffff;
+  --bp-chart-tooltip-border: rgb(128 128 128 / 0.35);
+  --bp-chart-tooltip-text: #0b0b0b;
 
   position: relative;
   width: 100%;
@@ -73,4 +78,29 @@
 
 .bp-chart__grid path {
   display: none;
+}
+
+.bp-chart__hover {
+  pointer-events: none;
+}
+
+.bp-chart__crosshair {
+  stroke: var(--bp-chart-crosshair);
+  stroke-dasharray: 3 3;
+}
+
+/* 2px ring in the surface color, so the marker separates from the dense lines under it. */
+.bp-chart__marker {
+  stroke: var(--bp-chart-surface);
+  stroke-width: 2px;
+}
+
+.bp-chart__tooltip-box {
+  fill: var(--bp-chart-tooltip-bg);
+  stroke: var(--bp-chart-tooltip-border);
+}
+
+.bp-chart__tooltip-text {
+  fill: var(--bp-chart-tooltip-text);
+  font: var(--bp-chart-font);
 }
