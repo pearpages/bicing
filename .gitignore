@@ -4,4 +4,4 @@ coverage
 *.tsbuildinfo
 .DS_Store
 # Downloaded and generated datasets never go in git (see ARCHITECTURE.md > Deployment).
-data/
+/data/
