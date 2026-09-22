@@ -31,7 +31,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.12** vue: `useTimeSeriesChart` composable + `TimeSeriesChart.vue`, non-reactive data. ADR 0007. _Done when:_ a test asserts that the data is not a Proxy.
 - [x] **T1.13** web: benchmark mode (renderer × size × decimation), `PerfOverlay` (FPS, frame p50/p95, long animation frames, memory), time-to-first-chart.
 - [x] **T1.14** web: scripted 5-second pan/zoom run → results table (copyable Markdown). _Note:_ unit-tested (path, Markdown); the first complete live run happens in T1.15, which needs a visible browser window (background tabs pause rAF).
-- [ ] **T1.15** Run the benchmarks and record the results + machine in the README. _Done when:_ WebGL is ~60 fps at 10M, and SVG degradation is shown with numbers.
+- [x] **T1.15** Run the benchmarks and record the results + machine in the README. _Done when:_ WebGL is ~60 fps at 10M, and SVG degradation is shown with numbers.
 - [ ] **T1.16** Phase 1 summary in README / CLAUDE.md. Draft Phase 2 tasks here.
 
 ## Phase 2 — Real data (to be broken down at the end of Phase 1)
@@ -45,3 +45,10 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 ## Discovered
 
 - [ ] **D1** Add a GitHub remote, push, and confirm the CI run is green (T0.6 was only verified locally).
+- [ ] **D2** Reliable memory measurement: sample `measureUserAgentSpecificMemory` after each load settles and await it inside the run. The current 5 s polling lags behind configuration changes, so memory is left out of the README table.
+- [ ] **D3** Decimation fast path: when a series' visible points ≤ 4 × pixels, take them as they are (Canvas at 1M with min/max costs 2× the CPU of no downsampling).
+- [ ] **D4** Don't re-decimate every frame while the result is over the renderer's cap (SVG at 10M with min/max still spends ~72 ms/frame to learn it's skipped).
+- [ ] **D5** WebGL at 50M: 11 frames over 50 ms at full extent. Profile the GPU side (fill vs vertex) and consider LOD from the Phase 2 aggregates.
+- [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
+- [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
+- [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
