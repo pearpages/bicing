@@ -7,10 +7,16 @@
     ".": "./src/index.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "synth": "tsx src/cli.ts"
   },
   "devDependencies": {
     "typescript": "6.0.3",
-    "@types/node": "24.13.6"
+    "@types/node": "24.13.6",
+    "tsx": "4.23.15"
+  },
+  "dependencies": {
+    "@bicing/core": "workspace:*",
+    "@bicing/synthetic": "workspace:*"
   }
 }
