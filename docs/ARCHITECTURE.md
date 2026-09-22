@@ -35,11 +35,12 @@ Columnar, typed arrays only; no arrays of objects on any hot path.
 
 ## Data flow (Phase 1)
 
-UI control → `data` client → worker generates the columns → the `ArrayBuffer`s are **transferred** (zero-copy) → a
-store handle (marked non-reactive) → `TimeSeriesChart.setData()`, which builds per-station series **once**
-(`buildStationSeries`: in-service rows only, contiguous `x`/`y` per station) → gap-free lines → optional decimation of
-the visible slice (ADR 0006) → `Renderer.setData()` (the GPU upload happens here) → `Renderer.render(viewport)` on each frame
-(only the uniforms or projection change).
+UI control → `data` client → the worker generates the columns **and** builds the per-station series
+(`buildStationSeries`: in-service rows only, contiguous `x`/`y` per station; an O(N) pass, so it stays off the main
+thread, P8) → every `ArrayBuffer` is **transferred** (zero-copy) → a store handle (marked non-reactive) →
+`TimeSeriesChart.setData(series)` → gap-free lines → optional decimation of the visible slice (ADR 0006) →
+`Renderer.setData()` (the GPU upload happens here) → `Renderer.render(viewport)` on each frame (only the uniforms or
+projection change).
 
 Rows whose status isn't "in service" are **left out**, not drawn as zero bikes. A closure therefore shows up as a gap
 in the line, like a missing day (P9).
