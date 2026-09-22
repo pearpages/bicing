@@ -17,7 +17,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 
 ## Phase 1 — Rendering core with synthetic data
 
-- [ ] **T1.1** core: types, `Status`, time epoch, `lowerBound`/`upperBound`, `timeSlice`. Tests. _Done when:_ the edge cases pass.
+- [x] **T1.1** core: types, `Status`, time epoch, `lowerBound`/`upperBound`, `timeSlice`. Tests. _Done when:_ the edge cases pass.
 - [ ] **T1.2** core: per-station series index (permutation + offsets) and gap segmentation. Tests.
 - [ ] **T1.3** synthetic: mulberry32 PRNG, the station layout, daily profiles, closures, optional gaps, sorted output; `tools/synthetic` CLI. ADR 0003. _Done when:_ the same seed gives byte-identical output and the sort invariant holds (property test).
 - [ ] **T1.4** core: `minMaxPerPixel` + example and property tests. _Done when:_ extremes, endpoints and gap boundaries are preserved.
