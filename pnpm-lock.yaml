@@ -250,10 +250,20 @@ importers:
         version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(sass@1.104.1)(tsx@4.23.15))
 
   packages/data:
+    dependencies:
+      '@bicing/core':
+        specifier: workspace:*
+        version: link:../core
+      '@bicing/synthetic':
+        specifier: workspace:*
+        version: link:../synthetic
     devDependencies:
       typescript:
         specifier: 6.0.3
         version: 6.0.3
+      vitest:
+        specifier: 5.0.1
+        version: 5.0.1(@types/node@24.13.6)(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(sass@1.104.1)(tsx@4.23.15))
 
   packages/renderers:
     devDependencies:
