@@ -26,7 +26,7 @@ New work goes under **Discovered**. Phases 2–3 are placeholders until Phase 1 
 - [x] **T1.7** renderers: the `Renderer` interface, DPR sizing, `SvgRenderer` (1M cap), `CanvasRenderer`. ADR 0004.
 - [x] **T1.8** renderers: `WebGLRenderer`: GPU buffers uploaded once, integer `t` attribute with origin subtraction, color-ramp texture from a d3 interpolator, context-loss handling.
 - [x] **T1.9** charts: `FrameScheduler` (rAF coalescing, dirty layers) + tests with a fake rAF.
-- [ ] **T1.10** charts: `TimeSeriesChart`: layered DOM, d3-scale/axis/zoom, decimation on zoom over the visible slice, renderer swap.
+- [x] **T1.10** charts: `TimeSeriesChart`: layered DOM, d3-scale/axis/zoom, decimation on zoom over the visible slice, renderer swap.
 - [ ] **T1.11** charts: hover picking with flatbush over the drawn vertices.
 - [ ] **T1.12** vue: `useTimeSeriesChart` composable + `TimeSeriesChart.vue`, non-reactive data. ADR 0007. _Done when:_ a test asserts that the data is not a Proxy.
 - [ ] **T1.13** web: benchmark mode (renderer × size × decimation), `PerfOverlay` (FPS, frame p50/p95, long animation frames, memory), time-to-first-chart.

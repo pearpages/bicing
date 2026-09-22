@@ -4,13 +4,27 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/d3-axis": "3.0.6",
+    "@types/d3-scale": "4.0.9",
+    "@types/d3-selection": "3.0.12",
+    "@types/d3-zoom": "3.0.8",
+    "jsdom": "30.0.1",
     "typescript": "6.0.3",
     "vitest": "5.0.1"
+  },
+  "dependencies": {
+    "@bicing/core": "workspace:*",
+    "@bicing/renderers": "workspace:*",
+    "d3-axis": "3.0.0",
+    "d3-scale": "4.0.2",
+    "d3-selection": "3.0.0",
+    "d3-zoom": "3.0.0"
   }
 }

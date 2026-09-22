@@ -1,0 +1,76 @@
+/*
+ * Layout for @bicing/charts. CSS owns the geometry (including the axis margins); the controllers
+ * only measure the plot box and never write inline styles (P16). Theme through the custom
+ * properties on .bp-chart.
+ */
+.bp-chart {
+  --bp-chart-margin-top: 12px;
+  --bp-chart-margin-right: 16px;
+  --bp-chart-margin-bottom: 30px;
+  --bp-chart-margin-left: 44px;
+  --bp-chart-axis-text: currentColor;
+  --bp-chart-axis-line: currentColor;
+  --bp-chart-grid: rgb(128 128 128 / 0.18);
+  --bp-chart-font: 11px system-ui, sans-serif;
+
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.bp-chart__plot,
+.bp-chart__overlay {
+  position: absolute;
+  top: var(--bp-chart-margin-top);
+  right: var(--bp-chart-margin-right);
+  bottom: var(--bp-chart-margin-bottom);
+  left: var(--bp-chart-margin-left);
+}
+
+.bp-chart__data {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.bp-chart__axes {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.bp-chart__overlay {
+  cursor: grab;
+  touch-action: none;
+}
+
+.bp-chart__overlay:active {
+  cursor: grabbing;
+}
+
+.bp-chart__axis text,
+.bp-chart__label {
+  fill: var(--bp-chart-axis-text);
+  font: var(--bp-chart-font);
+}
+
+.bp-chart__axis path,
+.bp-chart__axis line {
+  stroke: var(--bp-chart-axis-line);
+  stroke-opacity: 0.45;
+}
+
+.bp-chart__grid line {
+  stroke: var(--bp-chart-grid);
+}
+
+.bp-chart__grid path {
+  display: none;
+}

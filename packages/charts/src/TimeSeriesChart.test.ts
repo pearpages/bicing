@@ -1,0 +1,202 @@
+// @vitest-environment jsdom
+import { allocateObservations, buildStationSeries, Status, type StationSeries } from '@bicing/core';
+import type { LineSeriesData, Renderer, RenderStats, Viewport } from '@bicing/renderers';
+import { afterEach, describe, expect, test } from 'vitest';
+import type { FrameClock } from './scheduler';
+import { TimeSeriesChart, type FrameReport } from './TimeSeriesChart';
+
+function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_SAFE_INTEGER) {
+  const uploads: LineSeriesData[] = [];
+  const views: Viewport[] = [];
+  let destroyed = false;
+  const renderer: Renderer = {
+    kind,
+    element: document.createElement('canvas'),
+    maxPoints,
+    setData: (data) => uploads.push(data),
+    setColorScale: () => undefined,
+    resize: () => undefined,
+    render: (view): RenderStats => {
+      views.push(view);
+      const last = uploads[uploads.length - 1];
+      return { points: last?.x.length ?? 0, drawCalls: 1 };
+    },
+    destroy: () => {
+      destroyed = true;
+    },
+  };
+  return { renderer, uploads, views, isDestroyed: () => destroyed };
+}
+
+/** Frames only happen when the test says so. */
+function manualClock() {
+  const pending = new Map<number, (t: number) => void>();
+  let next = 1;
+  const clock: FrameClock = {
+    request: (cb) => {
+      pending.set(next, cb);
+      return next++;
+    },
+    cancel: (h) => pending.delete(h),
+  };
+  const frame = () => {
+    const callbacks = [...pending.values()];
+    pending.clear();
+    for (const cb of callbacks) cb(16);
+  };
+  return { clock, frame };
+}
+
+/** 10 stations sampled every 5 minutes, in store order, with a deterministic wiggle. Core-only (P10). */
+function dataset(rows: number): StationSeries {
+  const stationCount = 10;
+  const obs = allocateObservations(rows);
+  for (let i = 0; i < rows; i++) {
+    const s = i % stationCount;
+    obs.stationIdx[i] = s;
+    obs.t[i] = Math.floor(i / stationCount) * 5;
+    obs.bikesMech[i] = (s * 7 + ((i * 2654435761) >>> 27)) % 30;
+    obs.status[i] = Status.InService;
+  }
+  const stations = {
+    length: stationCount,
+    ids: [],
+    names: [],
+    lat: new Float32Array(stationCount),
+    lon: new Float32Array(stationCount),
+    capacity: new Uint8Array(stationCount).fill(30),
+  };
+  return buildStationSeries(obs, stations);
+}
+
+const hosts: HTMLElement[] = [];
+function setup(
+  options: { decimation?: 'none' | 'minmax' | 'lttb'; maxPoints?: number; budget?: number } = {},
+) {
+  const host = document.createElement('div');
+  document.body.append(host);
+  hosts.push(host);
+  const fake = fakeRenderer('canvas', options.maxPoints);
+  const { clock, frame } = manualClock();
+  const chart = new TimeSeriesChart(host, {
+    renderer: fake.renderer,
+    decimation: options.decimation ?? 'none',
+    clock,
+    ...(options.budget === undefined ? {} : { liveDecimationBudget: options.budget }),
+  });
+  const reports: FrameReport[] = [];
+  chart.onFrame((r) => reports.push(r));
+  chart.resize(400, 200);
+  return { chart, host, fake, frame, reports };
+}
+
+afterEach(() => {
+  for (const host of hosts.splice(0)) host.remove();
+});
+
+describe('TimeSeriesChart', () => {
+  test('builds the layered DOM with a labelled root', () => {
+    const { host } = setup();
+    const root = host.querySelector('.bp-chart');
+    expect(root?.getAttribute('role')).toBe('img');
+    expect(root?.querySelector('.bp-chart__plot .bp-chart__data')).not.toBeNull();
+    expect(root?.querySelector('svg.bp-chart__axes')).not.toBeNull();
+    expect(root?.querySelector('.bp-chart__overlay')).not.toBeNull();
+  });
+
+  test('without decimation, uploads the full-resolution lines once and reuses them', () => {
+    const { chart, fake, frame, reports } = setup();
+    const series = dataset(20_000);
+    chart.setData(series);
+    frame();
+    expect(fake.uploads).toHaveLength(1);
+    expect(fake.uploads[0]?.x).toBe(series.x);
+    chart.zoomTo([series.xMin, series.xMin + 600]);
+    frame();
+    expect(fake.uploads).toHaveLength(1);
+    expect(reports.at(-1)).toMatchObject({
+      uploadedPoints: series.x.length,
+      stale: false,
+      skipped: null,
+    });
+  });
+
+  test('draws axes with ticks', () => {
+    const { chart, host, frame } = setup();
+    chart.setData(dataset(5_000));
+    frame();
+    expect(host.querySelectorAll('.bp-chart__axis--x .tick').length).toBeGreaterThan(1);
+    expect(host.querySelectorAll('.bp-chart__axis--y .tick').length).toBeGreaterThan(1);
+  });
+
+  test('min/max decimation uploads far fewer points and re-decimates on zoom', () => {
+    const { chart, fake, frame, reports } = setup({ decimation: 'minmax' });
+    const series = dataset(200_000);
+    chart.setData(series);
+    frame();
+    const first = reports.at(-1);
+    expect(first?.uploadedPoints).toBeLessThan(series.x.length / 2);
+    chart.zoomTo([series.xMin, series.xMin + 24 * 60]);
+    frame();
+    expect(fake.uploads.length).toBe(2);
+    expect(fake.uploads[1]?.x[0]).toBeLessThanOrEqual(series.xMin + 24 * 60);
+  });
+
+  test('during a gesture over too many points, keeps the stale decimation and refines when it ends', () => {
+    const { chart, fake, frame, reports } = setup({ decimation: 'minmax', budget: 1_000 });
+    const series = dataset(50_000);
+    chart.setData(series);
+    frame();
+    chart.setInteracting(true);
+    chart.zoomTo([series.xMin, series.xMax - 600]);
+    frame();
+    expect(reports.at(-1)?.stale).toBe(true);
+    expect(fake.uploads).toHaveLength(1);
+    chart.setInteracting(false);
+    frame();
+    expect(reports.at(-1)?.stale).toBe(false);
+    expect(fake.uploads).toHaveLength(2);
+  });
+
+  test('reports "skipped" instead of handing a renderer more than its cap', () => {
+    const { chart, fake, frame, reports } = setup({ maxPoints: 1_000 });
+    chart.setData(dataset(20_000));
+    frame();
+    expect(reports.at(-1)?.skipped).toMatch(/capped at 1,000 points/);
+    expect(fake.uploads.at(-1)?.x.length).toBe(0);
+  });
+
+  test('zoomTo clamps to the minimum span and notifies view listeners', () => {
+    const { chart } = setup();
+    const series = dataset(20_000);
+    chart.setData(series);
+    const views: (readonly [number, number])[] = [];
+    chart.onView((d) => views.push(d));
+    chart.zoomTo([series.xMin + 100, series.xMin + 101]);
+    const [d0, d1] = chart.domain;
+    expect(d1 - d0).toBeCloseTo(30, 5);
+    expect(views.length).toBeGreaterThan(0);
+  });
+
+  test('setRenderer destroys the old renderer and uploads to the new one', () => {
+    const { chart, fake, frame } = setup();
+    chart.setData(dataset(5_000));
+    frame();
+    const next = fakeRenderer('webgl');
+    chart.setRenderer(next.renderer);
+    frame();
+    expect(fake.isDestroyed()).toBe(true);
+    expect(next.uploads).toHaveLength(1);
+    expect(chart.rendererKind).toBe('webgl');
+  });
+
+  test('destroy removes the DOM and stops drawing', () => {
+    const { chart, host, fake, frame } = setup();
+    chart.setData(dataset(5_000));
+    chart.destroy();
+    frame();
+    expect(host.querySelector('.bp-chart')).toBeNull();
+    expect(fake.isDestroyed()).toBe(true);
+    expect(fake.views).toHaveLength(0);
+  });
+});
