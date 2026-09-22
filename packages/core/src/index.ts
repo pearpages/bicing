@@ -1,3 +1,5 @@
+export { minMaxPerPixel } from './decimate/minmax';
+export type { Decimated } from './decimate/result';
 export { lowerBound, upperBound } from './search';
 export { buildSeriesIndex, gather, segmentStarts } from './series';
 export type { SeriesIndex } from './series';
