@@ -1,4 +1,4 @@
-import type { ObservationColumns, StationTable } from '@bicing/core';
+import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
 
 /**
@@ -17,6 +17,7 @@ export type WorkerResponse =
       readonly type: 'generated';
       readonly observations: ObservationColumns;
       readonly stations: StationTable;
+      readonly series: StationSeries;
       /** Time spent generating inside the worker, excluding the postMessage hop. */
       readonly elapsedMs: number;
     }
@@ -30,6 +31,7 @@ export type WorkerResponse =
 export function transferList(
   observations: ObservationColumns,
   stations: StationTable,
+  series: StationSeries,
 ): ArrayBuffer[] {
   const views = [
     observations.stationIdx,
@@ -41,6 +43,10 @@ export function transferList(
     stations.lat,
     stations.lon,
     stations.capacity,
+    series.x,
+    series.y,
+    series.offsets,
+    series.meanFill,
   ];
   // Distinct buffers only: transferring the same buffer twice throws a DataCloneError.
   return [...new Set(views.map((view) => view.buffer as ArrayBuffer))];

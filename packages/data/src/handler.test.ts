@@ -11,8 +11,9 @@ describe('handleRequest', () => {
     if (response.type !== 'generated') throw new Error('expected a generated response');
     expect(response.id).toBe(7);
     expect(response.observations.length).toBe(1_000);
-    // 6 observation columns + lat, lon, capacity.
-    expect(transfer).toHaveLength(9);
+    // 6 observation columns + lat, lon, capacity + 4 series arrays.
+    expect(transfer).toHaveLength(13);
+    expect(response.series.offsets).toHaveLength(response.stations.length + 1);
   });
 
   test('transferring detaches the sender copies (zero-copy move, not a clone)', () => {
@@ -30,6 +31,7 @@ describe('handleRequest', () => {
     expect(response.observations.t.byteLength).toBe(0);
     expect(response.observations.bikesMech.byteLength).toBe(0);
     expect(response.stations.lat.byteLength).toBe(0);
+    expect(response.series.x.byteLength).toBe(0);
     expect(received.observations.t).toHaveLength(5_000);
     expect(Array.from(received.observations.bikesMech.subarray(0, 10))).toEqual(before);
   });

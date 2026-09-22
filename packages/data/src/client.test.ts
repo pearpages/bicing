@@ -38,12 +38,20 @@ const stations = {
   capacity: new Uint8Array(0),
 };
 
+const series = {
+  x: new Uint32Array(0),
+  y: new Uint8Array(0),
+  offsets: Uint32Array.of(0),
+  meanFill: new Float32Array(0),
+};
+
 function generated(id: number, rows: number): WorkerResponse {
   return {
     id,
     type: 'generated',
     observations: allocateObservations(rows),
     stations,
+    series,
     elapsedMs: 1,
   };
 }

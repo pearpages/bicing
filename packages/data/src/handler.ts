@@ -1,3 +1,4 @@
+import { buildStationSeries } from '@bicing/core';
 import { generate } from '@bicing/synthetic';
 import { transferList, type WorkerRequest, type WorkerResponse } from './protocol';
 
@@ -15,10 +16,12 @@ export function handleRequest(request: WorkerRequest): HandledResponse {
   try {
     const started = performance.now();
     const { observations, stations } = generate(request.options);
+    // O(N) over the whole dataset: done here, not in the chart, so the main thread never pays for it (P8).
+    const series = buildStationSeries(observations, stations);
     const elapsedMs = performance.now() - started;
     return {
-      response: { id: request.id, type: 'generated', observations, stations, elapsedMs },
-      transfer: transferList(observations, stations),
+      response: { id: request.id, type: 'generated', observations, stations, series, elapsedMs },
+      transfer: transferList(observations, stations, series),
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

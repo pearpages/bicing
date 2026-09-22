@@ -1,4 +1,4 @@
-import type { ObservationColumns, StationTable } from '@bicing/core';
+import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
@@ -13,6 +13,8 @@ export interface WorkerLike {
 export interface GeneratedDataset {
   readonly observations: ObservationColumns;
   readonly stations: StationTable;
+  readonly series: StationSeries;
+  /** Generation + series building inside the worker, excluding the transfer hop. */
   readonly workerMs: number;
 }
 
@@ -52,6 +54,7 @@ export function createDataClient(worker: WorkerLike): DataClient {
       request.resolve({
         observations: response.observations,
         stations: response.stations,
+        series: response.series,
         workerMs: response.elapsedMs,
       });
     }
