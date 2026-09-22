@@ -35,14 +35,28 @@ export function useDataset(): Dataset {
   const timing = shallowRef<LoadTiming | null>(null);
   let latest = 0;
   let pendingFirstFrame: { startedAt: number; timing: LoadTiming } | null = null;
+  let inFlight: { rows: number; promise: Promise<void> } | null = null;
+  let loadedRows: number | null = null;
 
-  async function load(rows: number): Promise<void> {
+  /** Idempotent per size: a control's watcher and the benchmark can both ask for the same data. */
+  function load(rows: number): Promise<void> {
+    if (inFlight?.rows === rows) return inFlight.promise;
+    if (!inFlight && loadedRows === rows && current.value) return Promise.resolve();
+    const promise = fetchRows(rows).finally(() => {
+      if (inFlight?.promise === promise) inFlight = null;
+    });
+    inFlight = { rows, promise };
+    return promise;
+  }
+
+  async function fetchRows(rows: number): Promise<void> {
     const request = ++latest;
     const startedAt = performance.now();
     loading.value = rows;
     error.value = null;
     // Drop the previous dataset first: 50M rows next to 10M can exhaust the tab's memory.
     current.value = null;
+    loadedRows = null;
     try {
       const dataset = await client.generate({ seed: SEED, rows });
       if (request !== latest) return;
@@ -54,6 +68,7 @@ export function useDataset(): Dataset {
       };
       timing.value = loaded;
       pendingFirstFrame = { startedAt, timing: loaded };
+      loadedRows = rows;
       current.value = markRaw(dataset);
     } catch (cause) {
       if (request !== latest) return;

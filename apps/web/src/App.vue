@@ -1,12 +1,22 @@
 <script setup lang="ts">
-import type { Decimation, FrameReport, Hit, RendererKind } from '@bicing/charts';
+import type {
+  TimeSeriesChart as ChartController,
+  Decimation,
+  FrameReport,
+  Hit,
+  RendererKind,
+} from '@bicing/charts';
 import { toEpochMs } from '@bicing/core';
 import { TimeSeriesChart } from '@bicing/vue';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import classes from './App.module.scss';
+import { waitFrames, waitUntil } from './benchmark/frames';
+import type { BenchmarkConfig } from './benchmark/results';
+import { fullMatrix, useBenchmark } from './benchmark/useBenchmark';
 import { usePerfMonitor } from './benchmark/usePerfMonitor';
 import OccupancyLegend from './components/OccupancyLegend.vue';
 import PerfPanel from './components/PerfPanel.vue';
+import ResultsDialog from './components/ResultsDialog.vue';
 import SegmentedControl, { type Option } from './components/SegmentedControl.vue';
 import { DEFAULT_ROWS, SIZE_TIERS } from './data/sizes';
 import { useDataset } from './data/useDataset';
@@ -83,6 +93,49 @@ function onFrame(report: FrameReport): void {
   if (report.uploadedPoints > 0 || report.skipped) dataset.markFirstFrame();
 }
 
+// Typed structurally: the component exposes its controller as `chart` (see @bicing/vue).
+const chartView = shallowRef<{ chart: ChartController | null } | null>(null);
+
+/** Applies a configuration and waits for its first drawn frame; used by the scripted benchmark. */
+async function configure(config: BenchmarkConfig): Promise<number | null> {
+  renderer.value = config.renderer;
+  decimation.value = config.decimation;
+  rows.value = config.rows;
+  await dataset.load(config.rows);
+  if (dataset.error.value) throw new Error(dataset.error.value);
+  await waitUntil(() => dataset.timing.value?.firstChartMs != null, 60_000);
+  await waitFrames(2);
+  return dataset.timing.value?.firstChartMs ?? null;
+}
+
+const benchmark = useBenchmark({
+  configure,
+  chart: () => chartView.value?.chart ?? null,
+  monitor: perf.monitor,
+});
+const resultsOpen = ref(false);
+const measuring = computed(() => benchmark.progress.value !== null);
+
+async function measure(configs: readonly BenchmarkConfig[]): Promise<void> {
+  resultsOpen.value = true;
+  await benchmark.run(configs);
+}
+
+function measureCurrent(): void {
+  void measure([{ renderer: renderer.value, rows: rows.value, decimation: decimation.value }]);
+}
+
+function measureAll(): void {
+  void measure(fullMatrix());
+}
+
+if (import.meta.env.DEV) {
+  // Lets browser automation drive the same runner a person uses (docs/TASKS.md T1.15).
+  Object.assign(window, {
+    bicingBenchmark: { run: measure, fullMatrix, markdown: () => benchmark.markdown.value },
+  });
+}
+
 watch(rows, (next) => void dataset.load(next));
 // Each configuration is measured on its own; long frames from the last one shouldn't carry over.
 watch([renderer, decimation, rows], () => {
@@ -106,27 +159,52 @@ onMounted(() => void dataset.load(rows.value));
           legend="Renderer"
           name="renderer"
           :options="rendererOptions"
+          :disabled="measuring"
         />
         <SegmentedControl
           v-model="rows"
           legend="Readings"
           name="rows"
           :options="sizeOptions"
-          :disabled="dataset.loading.value !== null"
+          :disabled="dataset.loading.value !== null || measuring"
         />
         <SegmentedControl
           v-model="decimation"
           legend="Downsampling"
           name="decimation"
           :options="decimationOptions"
+          :disabled="measuring"
         />
+        <div :class="classes.actions">
+          <button
+            type="button"
+            :class="classes.primary"
+            :disabled="measuring"
+            @click="measureCurrent"
+          >
+            Measure this setup
+          </button>
+          <button
+            type="button"
+            :class="classes.secondary"
+            :disabled="measuring"
+            @click="measureAll"
+          >
+            Measure all
+          </button>
+        </div>
       </div>
+      <p v-if="benchmark.progress.value" :class="classes.progress" role="status">
+        Measuring {{ benchmark.progress.value.index }} of {{ benchmark.progress.value.total }}:
+        {{ benchmark.progress.value.label }}
+      </p>
     </header>
 
     <main :class="classes.main">
       <section :class="classes.chartArea" aria-label="Bikes available per station">
         <div :class="classes.chart">
           <TimeSeriesChart
+            ref="chartView"
             :series="series"
             :renderer="renderer"
             :decimation="decimation"
@@ -154,5 +232,12 @@ onMounted(() => void dataset.load(rows.value));
         :timing="dataset.timing.value"
       />
     </main>
+
+    <ResultsDialog
+      :open="resultsOpen"
+      :results="benchmark.results.value"
+      :markdown="benchmark.markdown.value"
+      @close="resultsOpen = false"
+    />
   </div>
 </template>

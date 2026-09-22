@@ -47,6 +47,8 @@ export default defineConfig(
       // Type-based optional props are already `undefined` when absent, and an explicit `undefined`
       // default is rejected by exactOptionalPropertyTypes. The rule targets runtime-declared props.
       'vue/require-default-prop': 'off',
+      // TypeScript checks identifiers in SFCs (vue-tsc); core no-undef doesn't know browser globals.
+      'no-undef': 'off',
     },
   },
   {
