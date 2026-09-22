@@ -1,4 +1,6 @@
 export { lowerBound, upperBound } from './search';
+export { buildSeriesIndex, gather, segmentStarts } from './series';
+export type { SeriesIndex } from './series';
 export { allocateObservations, timeSlice } from './store';
 export { EPOCH_MS, MINUTES_PER_DAY, MS_PER_MINUTE, toEpochMs, toMinutes } from './time';
 export type { TimeMinutes } from './time';
@@ -10,3 +12,4 @@ export type {
   StationTable,
   TimeRange,
 } from './types';
+export type { TypedArray } from './typed-array';
