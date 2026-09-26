@@ -8,15 +8,15 @@ An interactive explorer of Barcelona's public bike-sharing history, built to sho
 Status: **Phase 1 complete.** A rendering core on seeded synthetic data: SVG, Canvas 2D and WebGL2 renderers behind
 one interface, min/max and LTTB downsampling, a D3-driven time series with zoom and hover, and a benchmark mode.
 **WebGL2 holds 60 fps at 10M points** on the reference machine, while SVG drops to 9 fps at 1M ([Benchmarks](#benchmarks)).
-Phase 2 brings the real Open Data BCN history. See [docs/TASKS.md](docs/TASKS.md).
+Phase 2 brings the real Open Data BCN history. See [tasks.md](tasks.md).
 
 ## What to look at
 
 | Topic                                  | Where                                                    |
 | -------------------------------------- | -------------------------------------------------------- |
-| Architecture, package graph, data flow | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)             |
-| The rules every change follows         | [docs/PRINCIPLES.md](docs/PRINCIPLES.md)                 |
-| Decisions and their trade-offs         | [docs/adr/](docs/adr/)                                   |
+| Architecture, package graph, data flow | [architecture.md](architecture.md)                       |
+| The rules every change follows         | [principles.md](principles.md)                           |
+| Decisions and their trade-offs         | [decisions.md](decisions.md)                             |
 | Why Canvas/WebGL instead of SVG        | [ADR 0001](docs/adr/0001-canvas-webgl-for-data-marks.md) |
 | Benchmark results                      | [Benchmarks](#benchmarks) (Phase 1)                      |
 
@@ -106,7 +106,7 @@ drawn frame: worker generation, transfer and the first draw.
 
 Memory is shown live in the app, but it's left out of this table: `measureUserAgentSpecificMemory` resolves lazily, and
 its samples lagged behind configuration changes during the automated run (see the Discovered list in
-[docs/TASKS.md](docs/TASKS.md)).
+[tasks.md](tasks.md)).
 
 ## Data
 
@@ -114,3 +114,7 @@ Station status history and station information come from
 [Open Data BCN](https://opendata-ajuntament.barcelona.cat/) (datasets `estat-estacions-bicing` and
 `informacio-estacions-bicing`). Real data arrives in Phase 2. Until then, everything runs on
 seeded synthetic data with the same schema.
+
+## License
+
+[MIT](LICENSE) © 2026 pearpages.

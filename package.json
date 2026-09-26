@@ -1,6 +1,7 @@
 {
   "name": "bicing-pulse",
   "private": true,
+  "license": "MIT",
   "type": "module",
   "packageManager": "pnpm@12.5.1",
   "engines": {

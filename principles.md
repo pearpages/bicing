@@ -26,7 +26,7 @@ don't route around it.
 
 ## Architecture
 
-- **P10 The dependency graph is law.** It's the one in ARCHITECTURE.md, enforced by lint. No exceptions.
+- **P10 The dependency graph is law.** It's the one in [architecture.md](architecture.md), enforced by lint. No exceptions.
 - **P11 Frameworks are thin.** Vue owns layout and controls. Data and chart controllers are non-reactive (`markRaw`,
   `shallowRef`) and are driven through imperative methods.
 - **P12 Pure core, effects at the edges.** `core` and `synthetic` are pure and DOM-free. Side effects live in workers,
@@ -54,9 +54,13 @@ don't route around it.
 
 ## Process
 
-- **P21 Work from TASKS.md.** Do the first unchecked task. Tick it in the same commit, and cite the task ID in the commit body.
+- **P21 Work from tasks.md.** Do the first unchecked task. Tick it in the same commit, and cite the task ID in the commit body.
 - **P22 One logical change per commit**, with Conventional Commits.
 - **P23 Decisions with trade-offs get an ADR** (`docs/adr/NNNN-title.md`: context, decision, consequences, alternatives).
 - **P24 Say when the plan is wrong.** If a task or principle is impractical, stop, propose an amendment, and record it.
   Never work around it silently.
 - **P25 Check versions, don't remember them.** Look up the current stable version before adding a dependency.
+- **P26 Knowledge lives in its file.** How to work → `AGENTS.md`; rules → here; how it's built → `architecture.md`;
+  why → an ADR indexed in `decisions.md`; work → `tasks.md`; risk → `security.md`. `CLAUDE.md` only imports
+  `AGENTS.md` and this file, and never holds a session log
+  ([ADR 0010](docs/adr/0010-project-knowledge-files.md)).
