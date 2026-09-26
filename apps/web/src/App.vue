@@ -130,7 +130,7 @@ function measureAll(): void {
 }
 
 if (import.meta.env.DEV || new URLSearchParams(location.search).has('automation')) {
-  // Lets browser automation drive the same runner a person uses (docs/TASKS.md T1.15). Production
+  // Lets browser automation drive the same runner a person uses (tasks.md T1.15). Production
   // builds opt in with ?automation, so benchmarks can run on minified code.
   Object.assign(window, {
     bicingBenchmark: { run: measure, fullMatrix, markdown: () => benchmark.markdown.value },

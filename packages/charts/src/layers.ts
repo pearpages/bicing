@@ -1,6 +1,6 @@
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-/** The stacked layers of a chart (see ARCHITECTURE.md > Chart anatomy). Positioned by styles.css. */
+/** The stacked layers of a chart (see architecture.md > Chart anatomy). Positioned by styles.css. */
 export interface ChartDom {
   readonly root: HTMLDivElement;
   readonly plot: HTMLDivElement;

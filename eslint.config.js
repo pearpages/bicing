@@ -8,7 +8,7 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 /**
- * The package dependency graph from docs/ARCHITECTURE.md (P10). Keys are element types
+ * The package dependency graph from architecture.md (P10). Keys are element types
  * (one per package); values are the element types each may import.
  */
 const allowedDependencies = {

@@ -37,7 +37,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ### Scaffold follow-ups
 
-- [ ] **S1** Point the code comments at the moved docs — `eslint.config.js:11` and `apps/web/src/App.vue:133` still say
+- [x] **S1** Point the code comments at the moved docs — `eslint.config.js:11` and `apps/web/src/App.vue:133` still say
       `docs/ARCHITECTURE.md` / `docs/TASKS.md`, and `packages/charts/src/layers.ts:3` and `.gitignore:6` say `ARCHITECTURE.md`;
       the scaffold skill doesn't touch code or tooling.
 - [ ] **S2** Give P1–P25 in `principles.md` a _Why_ and, where something enforces them (boundaries lint, tsconfig
