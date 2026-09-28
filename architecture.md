@@ -64,6 +64,9 @@ div.bp-chart
 - A per-chart `FrameScheduler` coalesces invalidations into one `requestAnimationFrame` and redraws only the dirty
   layers (`data`, `axes`, `overlay`).
 - The x-axis uses `d3-scale`'s `scaleUtc` and is labeled UTC. Barcelona-local time is a Phase 2 concern.
+- Text and formats come from a `ChartLocale` the app provides (a d3 time-format locale, a number formatter and the
+  chart's few strings), and `setLocale()` swaps it and marks the axes and overlay dirty. The chart holds no copy of
+  its own (see Language).
 - Colors come from an interpolator the app provides per theme (a single-hue sequential ramp for "mean
   occupancy", following the dataviz method). The chart doesn't hardcode a palette.
 
@@ -97,6 +100,18 @@ Vue owns layout, controls and the host elements. It never owns data:
 controllers and store handles are `markRaw` and held in `shallowRef`. Data changes reach charts only through
 imperative calls (`setData`, `setRenderer`, …), never through templates or reactive state.
 
+## Language
+
+The site is Catalan-first, with English as the second language (ADR 0011, P27). The repository's docs stay in English.
+
+- `apps/web/src/i18n/`: `messages.ca.ts` is the source and defines the `Messages` type, and `messages.en.ts` must
+  satisfy it. A `useI18n` composable exposes the active `locale` (a Vue setting) and its messages `t`.
+- Resolution: `?lang=` → the remembered choice (localStorage, try/catch) → `ca`. The browser language is ignored.
+- Formats: `Intl.NumberFormat(locale)` for numbers; `d3-time-format`'s `ca-ES` / `en-GB` locales for axes and tooltips.
+- `index.html` is Catalan (`lang="ca"`, title, description) for crawlers and link previews. The app updates
+  `<html lang>`, the title and the description when the language changes.
+- Charts receive a `ChartLocale` through `setLocale()`. `@bicing/charts` never imports the app's dictionaries.
+
 ## Workers
 
 Hand-written discriminated-union protocol (`data/protocol.ts`). Every response lists its buffers in
@@ -110,7 +125,7 @@ Hand-written discriminated-union protocol (`data/protocol.ts`). Every response l
 
 ## Deployment
 
-Vite build → nginx (multi-stage Dockerfile). Headers: `Cross-Origin-Opener-Policy: same-origin`,
+Public URL: `https://bicing.soms.cat` (host still to be chosen, tasks.md A9). Vite build → nginx (multi-stage Dockerfile). Headers: `Cross-Origin-Opener-Policy: same-origin`,
 `Cross-Origin-Embedder-Policy: credentialless` (memory API, later SharedArrayBuffer). Parquet comes from a
 configurable external base URL with CORS + range requests (Phase 2).
 

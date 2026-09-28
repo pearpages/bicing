@@ -6,7 +6,8 @@ don't route around it.
 ## Purpose
 
 - **P1 Serve the thesis.** Every feature must help show smooth rendering of millions of points with D3 math.
-  If a feature doesn't, it waits.
+  If a feature doesn't, it waits. The exception is what it takes to publish the thesis to its audience: hosting,
+  language (P27) and link previews.
 - **P2 Explainable in an interview.** Prefer the solution you can explain on a whiteboard in two minutes over a cleverer one.
 
 ## Performance
@@ -44,6 +45,10 @@ don't route around it.
 - **P16 Styles in stylesheets.** CSS Modules in `.module.scss` files. No inline styles, style objects or style bindings.
   (Canvas `width`/`height` attributes are backing-store sizing, not styling.)
 - **P17 Small modules.** One concept per file. Split a file when it passes ~250 lines.
+- **P27 Catalan first, English complete.** Every user-facing string comes from the typed dictionaries in
+  `apps/web/src/i18n/`. Catalan is the source and the default, and it must be correct Catalan; English must have
+  every key (enforced by the `Messages` type). Dates and numbers are formatted through the active locale. The
+  repository's docs, code, comments and developer-facing errors stay in English ([ADR 0011](docs/adr/0011-catalan-first-typed-i18n.md)).
 
 ## Testing
 
