@@ -26,7 +26,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ### Discovered
 
-- [ ] **D1** Add a GitHub remote, push, and confirm the CI run is green (T0.6 was only verified locally).
+- [x] **D1** Add a GitHub remote, push, and confirm the CI run is green (T0.6 was only verified locally).
 - [ ] **D2** Reliable memory measurement: sample `measureUserAgentSpecificMemory` after each load settles and await it inside the run. The current 5 s polling lags behind configuration changes, so memory is left out of the README table.
 - [ ] **D3** Decimation fast path: when a series' visible points ≤ 4 × pixels, take them as they are (Canvas at 1M with min/max costs 2× the CPU of no downsampling).
 - [ ] **D4** Don't re-decimate every frame while the result is over the renderer's cap (SVG at 10M with min/max still spends ~72 ms/frame to learn it's skipped).
@@ -45,8 +45,24 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **S3** Enable GitHub private vulnerability reporting once D1 creates the remote, and update
       `security.md` > Reporting.
 
+### Advertising readiness
+
+- [ ] **A9 Live demo.** A portfolio link must land on a running app, and today there is none: pick a host that can send COOP/COEP headers (GitHub Pages can't; Netlify/Cloudflare Pages `_headers`, or the existing Docker/nginx image), serve it at `bicing.soms.cat` (`CNAME`) and set `homepage` in `package.json`. Host choice has trade-offs, so it gets an ADR.
+- [ ] **A8 Open Graph tags.** Link previews on LinkedIn/X show no image or summary: add static `og:title/description/image/url/image:alt` and `twitter:card=summary_large_image` to `apps/web/index.html`, plus a 1200×630 card from a benchmark screenshot (og-card skill).
+- [ ] **A6 README first screen.** No image and no live link above the fold: add the card or a screenshot/GIF of the 10M-point zoom at the top, and a "Live demo" link once A9 is done (`README.md`).
+- [ ] **C15 Deploy pipeline.** Nothing publishes the site: add a deploy job to `.github/workflows/ci.yml` on push to main (after D1 and A9).
+- [ ] **C17 README overclaims brush.** The repository layout says `packages/charts` has a brush, but no brush exists until Phase 3: mark it as planned (`README.md` > Repository layout).
+- [ ] **B11 GitHub repo metadata.** `pearpages/bicing` has no description, website or topics, so it looks abandoned in search and on the profile: set them (`gh repo edit`), with the website pointing at `bicing.soms.cat` once A9 is live.
+- [ ] **B12 Favicon.** Tabs and bookmarks show the browser default: add a favicon and apple-touch-icon to `apps/web/index.html`.
+- [ ] **B13 README badges.** No CI or license badges near the title: add them once the GitHub remote exists (D1).
+- [ ] **B10 package.json metadata.** `description`, `repository`, `homepage`, `bugs` and `author` are empty in the root `package.json`, so GitHub and tooling show nothing.
+- [ ] **C16 Release notes.** Nothing tells a visitor what's in the current version: tag the Phase 1 state as a GitHub Release with notes (after D1).
+- [ ] **E23 Contributor files.** Nice-to-have, doesn't block: CONTRIBUTING and issue/PR templates.
+
 ## Done
 
+- [x] 2026-09-28: D1 done — repo pushed to `pearpages/bicing`, CI green on the first run.
+- [x] 2026-09-26: Maturity assessment — verdict Not ready, 11 gaps added to Open.
 - [x] 2026-09-26: Scaffolded project knowledge files — 5 created, 7 fixed, 3 follow-ups (ADR 0010).
 - [x] 2026-09-22: Phases 0 and 1 done (T0.1–T1.16). Measured WebGL2 at 60 fps with 10M points and SVG at 9 fps with 1M; the
       first run missed the target until MSAA turned out to cost 6× (ADR 0009).
