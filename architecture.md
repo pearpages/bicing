@@ -75,6 +75,16 @@ ADR 0012). `--read-month` reads that into `ObservationColumns` + `StationTable` 
    Parquet columns keep the compact types (`stationIdx` UINT16, `t` UINT32, the rest UINT8), Snappy-compressed so
    that every reader T2.4 compares can decode them.
 
+## Data flow (Phase 2, real data)
+
+Data source control → `data` client `load({ baseUrl, months })` → the worker fetches `stations.json` and each
+`observations-<YYYY-MM>.parquet` from `VITE_DATA_BASE_URL` (default `/data/`) → parquet-wasm decodes each file
+into typed columns (the WASM is initialised on the first load only) → the columns are validated and the months
+concatenated into one `ObservationColumns` → `buildStationSeries` → every buffer is transferred, exactly as for
+synthetic data (ADR 0005, ADR 0013). The chart can't tell the two sources apart. In development and `vite
+preview`, a Vite plugin serves `data/parquet` at `/data/` with range support; in production the files live on an
+external host with CORS.
+
 ## Chart anatomy
 
 Each chart is a framework-agnostic controller in `@bicing/charts` that owns this DOM inside a host element:

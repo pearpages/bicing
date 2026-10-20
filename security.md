@@ -29,8 +29,16 @@ uploads. All data is generated in a Web Worker from a seed.
 
 **Phase 2 additions** (planned, not built yet):
 
-- Parquet fetched from a configurable external base URL (CORS + range requests). Treat those files as untrusted:
-  validate the schema and bounds (station indices < station count, sorted `t`) before handing columns to renderers.
+- **Parquet from a configurable base URL** (T2.4, ADR 0013). `VITE_DATA_BASE_URL` is set at build time and is not
+  user input; in production it's an external host with CORS. Everything fetched from it is untrusted:
+  - month names from `manifest.json` must match `YYYY-MM` before they're put in a URL;
+  - `stations.json` must have equal-length arrays of the right types;
+  - each Parquet file must have the six expected columns, every `stationIdx` below the station count, `t`
+    sorted, and `status` a known value.
+
+  A file that fails is rejected with an error, never drawn. Station names reach the DOM only as text (Vue
+  templates and d3 `.text()`).
+
 - **Extracting the 7z archives** (T2.2, ADR 0012):
   - **Sandbox:** 7-Zip runs as WASM (`7z-wasm`), with only the archive's folder and a scratch folder under `data/`
     mounted.
@@ -71,7 +79,8 @@ uploads. All data is generated in a Web Worker from a seed.
 
 - **`?automation` in production**: anyone can script the benchmark in their own tab. This is accepted: it runs only
   client-side code the UI already exposes, and it affects only that tab.
-- **No CSP header**: accepted while the page loads only same-origin code and no third-party content. Revisit when
-  Phase 2 adds the external data URL (a `connect-src` limited to that origin).
+- **No CSP header**: accepted while the page loads only same-origin code and no third-party content. When A9 deploys
+  with an external data host, add a CSP with `connect-src` limited to that origin (and `wasm-unsafe-eval` for
+  parquet-wasm).
 - **CI actions pinned to tags**: accepted for a single-maintainer portfolio repo; pin to SHAs if the repo gains
   secrets or deploy credentials.
