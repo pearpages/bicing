@@ -31,6 +31,7 @@ pnpm test -- --run    # unit + property tests, single run
 pnpm lint && pnpm typecheck
 pnpm build            # production build of apps/web
 pnpm prepare-data     # Open Data BCN archives → data/raw (~2.6 GB; --from/--to YYYY-MM, --dry-run)
+pnpm prepare-data --read-month 2026-09   # one cached month → columns, with a data-quality report
 ```
 
 Docker (static build served by nginx, with cross-origin isolation headers):

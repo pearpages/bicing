@@ -14,5 +14,10 @@
     "@types/node": "24.13.6",
     "tsx": "4.23.15",
     "typescript": "6.0.3"
+  },
+  "dependencies": {
+    "7z-wasm": "1.2.0",
+    "@bicing/core": "workspace:*",
+    "@duckdb/node-api": "1.5.6-r.1"
   }
 }

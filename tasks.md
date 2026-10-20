@@ -20,7 +20,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 `parquet-wasm` and DuckDB-WASM (only dev builds were published as of 2026-09) in an ADR before choosing.
 
 - [x] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
-- [ ] **T2.2** Extract the monthly 7z archives with 7z-wasm; read the CSVs with DuckDB (Node), selecting columns by header name; time from `last_reported`, deduplicated per (station, minute); join the station information; map IDs to dense indices; cast to the compact types, dropping and counting invalid rows; sort by (t, stationIdx). ADR 0012. _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture. _(Amended 2026-10-20: the archives hold CSV, not JSON snapshots.)_
+- [x] **T2.2** Extract the monthly 7z archives with 7z-wasm; read the CSVs with DuckDB (Node), selecting columns by header name; time from `last_reported`, deduplicated per (station, minute); join the station information; map IDs to dense indices; cast to the compact types, dropping and counting invalid rows; sort by (t, stationIdx). ADR 0012. _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture. _(Amended 2026-10-20: the archives hold CSV, not JSON snapshots.)_
 - [ ] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
 - [ ] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
 - [ ] **T2.5** Multi-resolution aggregates (5 min / 1 h / 1 day min-max-mean per station), picked by the visible span, so zoomed-out views stay small (feeds D3, D5).
@@ -72,6 +72,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-20: T2.2 done — a cached month → `ObservationColumns` + `StationTable` in ~3 s (2026-09: 4,468,778 readings, 542 stations); stale reports and shifted capacities handled (ADR 0012).
 - [x] 2026-10-20: T2.1 done — `pnpm prepare-data` finds 180 monthly archives (~2.6 GB, 2019-03 → 2026-09) via CKAN and caches them in `data/raw`; a second run downloads nothing.
 - [x] 2026-10-20: I3 done — all UI copy, notes and the exported Markdown in the `ca`/`en` dictionaries, numbers in the active locale; both languages checked in Chrome.
 - [x] 2026-10-20: I2 done — `ChartLocale` + `setLocale()`: Catalan/English axis ticks, tooltip and cap message; no re-upload on switch.
