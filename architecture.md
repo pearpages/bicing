@@ -50,9 +50,29 @@ in the line, like a missing day (P9).
 `pnpm prepare-data` → CKAN `package_show` finds the monthly 7z archives → idempotent cache in `data/raw/<dataset>/<YYYY-MM>.7z`
 (T2.1) → per month: 7z-wasm extracts the one CSV into a scratch folder under `data/` → DuckDB selects columns by name,
 `TRY_CAST`s, drops and counts invalid rows, takes the time from `last_reported` floored to the minute, keeps one row per
-(station, minute), and joins the month's latest station information, checking capacity against the readings → dense station indices
-in id order →
-`ObservationColumns` + `StationTable`, sorted by (`t`, `stationIdx`) (T2.2, ADR 0012) → Parquet and `gaps.json` (T2.3).
+(station, minute), and joins the month's latest station information, checking capacity against the readings (T2.2,
+ADR 0012). `--read-month` reads that into `ObservationColumns` + `StationTable` with dense indices in id order.
+
+`pnpm prepare-data --build` writes the files the app loads (T2.3), in two steps:
+
+1. **Stage** each month into `data/stage/<YYYY-MM>/`: `obs.parquet` (original `station_id`, `t` and the readings),
+   `stations.parquet`, `snapshots.parquet` (the minute of every feed snapshot) and `report.json`. A month is
+   re-staged only when its archives change (their cache entries are recorded in `report.json`).
+2. **Publish** into `data/parquet/`:
+   - `stations.json`: one station table for every month. A station's row comes from the latest month it appears
+     in, and indices `0..N-1` follow ascending id, so a file's `stationIdx` means the same thing in every file.
+   - `observations-<YYYY-MM>.parquet`: the rows whose `t` falls in that UTC month, sorted by (`t`, `stationIdx`).
+     The archives are cut by Barcelona local time (September's starts at 22:00 UTC on 31 August), so a month is
+     built from its staged neighbours too, deduplicated per (station, `t`).
+   - `observations.parquet`: every month concatenated in order, so it's sorted without a global sort.
+   - `gaps.json`: periods where the whole feed published no snapshot for more than `DEFAULT_MAX_GAP_MINUTES` (15),
+     the same threshold at which lines already break, plus the months the catalogue has no archive for and the UTC
+     days with no snapshot at all. Coverage runs from the first catalogued month to the end of the last one, so
+     a month that starts late or ends early shows up as a gap too. Detected from the data, never assumed.
+   - `manifest.json`: each file with its rows, bytes and time range, for the browser loader (T2.4).
+
+   Parquet columns keep the compact types (`stationIdx` UINT16, `t` UINT32, the rest UINT8), Snappy-compressed so
+   that every reader T2.4 compares can decode them.
 
 ## Chart anatomy
 
