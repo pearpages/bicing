@@ -12,8 +12,11 @@ T2.2 assumed the monthly archives hold JSON snapshots. They don't (checked on 20
   (`num_bikes_available_types.mechanical`, `last_reported`, `last_updated`, …).
 - **Size:** a 2026 month is about 290 MB of status (4.5M rows, 545 stations, a snapshot every ~5 minutes) and
   990 MB of station information (the full station list repeated in every snapshot).
-- **Drift:** the column order and the column set change between years. In 2019-03 the information file's header
-  doesn't even line up with its values: `altitude` holds the name, `address` holds the postcode.
+- **Drift:** the column order and the column set change between years. Individual rows can be shifted too: in
+  2019-03 all 884 information rows of station 1 are off by one field, so `capacity` holds `1` while the station
+  reports 30 bikes plus docks. Every other station that month, and every row in 2022-06 and 2026-09, lines up.
+- **Stale reports:** stations in maintenance or planned repeat a months-old `last_reported` in every snapshot
+  (22,916 rows in 2026-09).
 - **Two timestamps:** `last_updated` is when the snapshot was taken, the same for every station.
   `last_reported` is when that station itself last reported, and it stays put while the station is silent.
 
@@ -32,11 +35,12 @@ untrusted input (security.md).
 - **Reading: DuckDB (`@duckdb/node-api` 1.5.6-r.1)** runs SQL over the CSV in Node:
   - columns are selected by header name, never by position;
   - values are cast with `TRY_CAST`, and any row that fails a cast or a range check is dropped and counted;
-  - the run fails, naming the month, if more than 1% of rows are dropped, so a misaligned header like 2019-03
+  - the run fails, naming the month, if more than 1% of rows fail, so a header that no longer matches its values
     stops the run instead of producing garbage.
 - **Time is `last_reported`**, floored to the minute (minutes since 2018-01-01, as before).
   - Repeated snapshots of the same report collapse into one row per (station, `t`), keeping the latest snapshot.
-  - Reports outside the archive's month (with a day of margin) are rejected.
+  - Reports outside the archive's month (with a day of margin) are dropped and counted as **stale**, separately
+    from invalid rows: they're silent stations, not broken data, so they don't count toward the 1% limit.
   - A silent station therefore produces a gap, never a stale value that looks fresh (P9).
 - **Status:** `IN_SERVICE` → `InService`; `NOT_IN_SERVICE` and `MAINTENANCE` → `Closed`; anything else, such as
   `PLANNED`, → `Other`.
@@ -44,18 +48,23 @@ untrusted input (security.md).
   Station ids are mapped to dense indices `0..N-1` in ascending id order. A station present in the status file
   but missing from the information file still gets a row, named `#<id>` with no coordinates (NaN), and is
   counted in the report. T2.3 builds one mapping across all months for the merged file.
+- **Capacity is checked against the readings.** Casts can't see a shifted row, but a station's capacity can't be
+  below half the bikes plus free docks it reported. When it is, as with station 1 in 2019-03, or a station
+  closed or shrunk during the month whose latest row says 0, its capacity becomes the most it reported, and it's
+  counted in the report. If more than 10% of a month's stations need that, the information header itself is off
+  and the month fails.
 
 ## Consequences
 
 - (+) No system dependency: the same pinned extractor runs on macOS and in CI, and the fixture test runs everywhere.
 - (+) A hostile archive can at worst fill the mounted scratch folder.
-- (+) Header drift is handled by naming columns, and a broken header fails loudly instead of quietly shifting
-  values into the wrong fields.
+- (+) Header drift is handled by naming columns. A broken header fails loudly, and a single shifted station is
+  repaired and reported instead of quietly getting a wrong capacity.
 - (+) `last_reported` keeps the data honest: outages are gaps, and identical rows aren't stored twice.
 - (−) Two new dependencies. DuckDB is a ~40 MB native binary per platform, prebuilt, with no install scripts.
 - (−) `last_reported` timestamps are irregular, not a 5-minute grid. Aggregates (T2.5) bucket them anyway.
-- (−) Older months like 2019-03 will fail the 1% check until a per-period column mapping exists
-  (tasks.md Discovered).
+- (−) The capacity of a station repaired from its readings is a lower bound: the most bikes plus docks it
+  reported, not a published figure.
 
 ## Alternatives considered
 
