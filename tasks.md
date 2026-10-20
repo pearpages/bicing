@@ -20,7 +20,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 `parquet-wasm` and DuckDB-WASM (only dev builds were published as of 2026-09) in an ADR before choosing.
 
 - [x] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
-- [ ] **T2.2** Extract the monthly 7z archives; read the JSON snapshots with DuckDB (Node); join the station information; map IDs to dense indices; cast to the compact types; sort by (t, stationIdx). _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture.
+- [ ] **T2.2** Extract the monthly 7z archives with 7z-wasm; read the CSVs with DuckDB (Node), selecting columns by header name; time from `last_reported`, deduplicated per (station, minute); join the station information; map IDs to dense indices; cast to the compact types, dropping and counting invalid rows; sort by (t, stationIdx). ADR 0012. _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture. _(Amended 2026-10-20: the archives hold CSV, not JSON snapshots.)_
 - [ ] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
 - [ ] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
 - [ ] **T2.5** Multi-resolution aggregates (5 min / 1 h / 1 day min-max-mean per station), picked by the visible span, so zoomed-out views stay small (feeds D3, D5).
@@ -42,6 +42,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
 - [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
 - [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
+- [ ] **D11** 2019-era information CSVs have a header that doesn't line up with the values (2019-03: `altitude` holds the name). Needs a per-period column mapping before T2.3 can process all months (ADR 0012).
 - [ ] **D10** Synthetic station names are English (`Synthetic station 014`) and show in the Catalan tooltip: name them neutrally or in Catalan in `packages/synthetic` (real names replace them in Phase 2).
 - [ ] **D9** Split `packages/charts/src/TimeSeriesChart.ts` (~520 lines, P17 says ~250): axes, hover/tooltip and the zoom policy are separable.
 

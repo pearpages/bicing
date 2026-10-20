@@ -45,6 +45,14 @@ projection change).
 Rows whose status isn't "in service" are **left out**, not drawn as zero bikes. A closure therefore shows up as a gap
 in the line, like a missing day (P9).
 
+## Ingest (Phase 2, `tools/prepare-data`)
+
+`pnpm prepare-data` → CKAN `package_show` finds the monthly 7z archives → idempotent cache in `data/raw/<dataset>/<YYYY-MM>.7z`
+(T2.1) → per month: 7z-wasm extracts the one CSV into a scratch folder under `data/` → DuckDB selects columns by name,
+`TRY_CAST`s, drops and counts invalid rows, takes the time from `last_reported` floored to the minute, keeps one row per
+(station, minute), and joins the month's latest station information → dense station indices in id order →
+`ObservationColumns` + `StationTable`, sorted by (`t`, `stationIdx`) (T2.2, ADR 0012) → Parquet and `gaps.json` (T2.3).
+
 ## Chart anatomy
 
 Each chart is a framework-agnostic controller in `@bicing/charts` that owns this DOM inside a host element:

@@ -31,8 +31,13 @@ uploads. All data is generated in a Web Worker from a seed.
 
 - Parquet fetched from a configurable external base URL (CORS + range requests). Treat those files as untrusted:
   validate the schema and bounds (station indices < station count, sorted `t`) before handing columns to renderers.
-- Extracting the 7z archives (T2.2): extract only to `data/`, and reject entries with absolute paths or `..` (path
-  traversal).
+- **Extracting the 7z archives** (T2.2, ADR 0012):
+  - **Sandbox:** 7-Zip runs as WASM (`7z-wasm`), with only the archive's folder and a scratch folder under `data/`
+    mounted.
+  - **Entries:** the archive must list exactly one entry, a plain `*.csv` name (no `/`, no `..`, nothing absolute).
+    Anything else is rejected before extraction.
+  - **Contents:** the CSV is untrusted too. DuckDB reads it with `TRY_CAST` and range checks, and a month with more
+    than 1% invalid rows fails.
 
 **Node CLIs (`tools/*`)**: run locally by the developer. `tools/synthetic` writes only to its `--out` directory.
 

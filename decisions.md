@@ -21,6 +21,7 @@ before they are accepted.
 | [0009](docs/adr/0009-webgl-lines-without-msaa.md)       | WebGL data lines without MSAA                                                      | Accepted | 2026-09-22 |
 | [0010](docs/adr/0010-project-knowledge-files.md)        | Project knowledge lives in principles, architecture, decisions, tasks and security | Accepted | 2026-09-26 |
 | [0011](docs/adr/0011-catalan-first-typed-i18n.md)       | Catalan-first UI with typed dictionaries, no i18n library                          | Accepted | 2026-09-28 |
+| [0012](docs/adr/0012-open-data-ingest.md)               | Ingest: 7z-wasm extracts, DuckDB reads the CSVs, `last_reported` is the time       | Accepted | 2026-10-20 |
 
 ## Format
 
