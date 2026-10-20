@@ -10,6 +10,13 @@ export const ca = {
   language: {
     legend: 'Llengua',
   },
+  chart: {
+    label: 'Bicicletes disponibles per estació al llarg del temps',
+    station: (number: number) => `Estació ${String(number)}`,
+    bikes: (count: number) => (count === 1 ? '1 bicicleta' : `${String(count)} bicicletes`),
+    capped: (renderer: string, max: string, requested: string) =>
+      `${renderer}: com a màxim ${max} punts (se n'han demanat ${requested})`,
+  },
 };
 
 export type Messages = typeof ca;

@@ -16,10 +16,12 @@
     "@bicing/vue": "workspace:*",
     "@fontsource-variable/public-sans": "5.3.0",
     "d3-interpolate": "3.0.1",
+    "d3-time-format": "4.1.0",
     "vue": "3.5.43"
   },
   "devDependencies": {
     "@types/d3-interpolate": "3.0.4",
+    "@types/d3-time-format": "4.0.3",
     "@types/node": "24.13.6",
     "@vitejs/plugin-vue": "6.0.9",
     "sass": "1.104.1",

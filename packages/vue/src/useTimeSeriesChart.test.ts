@@ -1,3 +1,4 @@
+import type { ChartLocale } from '@bicing/charts';
 import type { StationSeries } from '@bicing/core';
 import { mount } from '@vue/test-utils';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
@@ -9,6 +10,7 @@ const calls = vi.hoisted(() => ({
   setData: [] as unknown[],
   setRenderer: [] as string[],
   setDecimation: [] as string[],
+  setLocale: [] as string[],
   destroyed: 0,
 }));
 
@@ -25,6 +27,9 @@ vi.mock('@bicing/charts', () => ({
       calls.setDecimation.push(decimation);
     }
     setColorScale = () => undefined;
+    setLocale(locale: { label: string }) {
+      calls.setLocale.push(locale.label);
+    }
     onFrame = () => undefined;
     onHover = () => undefined;
     onView = () => undefined;
@@ -49,9 +54,31 @@ function series(): StationSeries {
   };
 }
 
+/** Only the label matters to the mock; the rest satisfies the type. */
+function fakeLocale(label: string): ChartLocale {
+  return {
+    time: {
+      dateTime: '%c',
+      date: '%x',
+      time: '%X',
+      periods: ['AM', 'PM'],
+      days: ['', '', '', '', '', '', ''],
+      shortDays: ['', '', '', '', '', '', ''],
+      months: ['', '', '', '', '', '', '', '', '', '', '', ''],
+      shortMonths: ['', '', '', '', '', '', '', '', '', '', '', ''],
+    },
+    formatNumber: String,
+    label,
+    station: String,
+    bikes: String,
+    capped: () => '',
+  };
+}
+
 function harness(data: Ref<StationSeries | null>) {
   const renderer = ref<'svg' | 'canvas' | 'webgl'>('webgl');
   const decimation = ref<'none' | 'minmax' | 'lttb'>('none');
+  const locale = shallowRef(fakeLocale('ca'));
   const component = defineComponent({
     setup() {
       const host = ref<HTMLElement | null>(null);
@@ -60,17 +87,19 @@ function harness(data: Ref<StationSeries | null>) {
         renderer,
         decimation,
         colorScale: ref(() => '#000'),
+        locale,
       });
       return () => h('div', { ref: host });
     },
   });
-  return { wrapper: mount(component), renderer, decimation };
+  return { wrapper: mount(component), renderer, decimation, locale };
 }
 
 beforeEach(() => {
   calls.setData.length = 0;
   calls.setRenderer.length = 0;
   calls.setDecimation.length = 0;
+  calls.setLocale.length = 0;
   calls.destroyed = 0;
 });
 
@@ -98,12 +127,14 @@ describe('useTimeSeriesChart', () => {
   });
 
   test('settings flow to the controller imperatively', async () => {
-    const { renderer, decimation } = harness(shallowRef(series()));
+    const { renderer, decimation, locale } = harness(shallowRef(series()));
     renderer.value = 'canvas';
     decimation.value = 'minmax';
+    locale.value = fakeLocale('en');
     await nextTick();
     expect(calls.setRenderer).toEqual(['canvas']);
     expect(calls.setDecimation).toEqual(['minmax']);
+    expect(calls.setLocale).toEqual(['en']);
   });
 
   test('destroys the controller on unmount', () => {

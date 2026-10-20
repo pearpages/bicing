@@ -3,6 +3,7 @@ import { allocateObservations, buildStationSeries, Status, type StationSeries } 
 import type { LineSeriesData, Renderer, RenderStats, Viewport } from '@bicing/renderers';
 import { afterEach, describe, expect, test } from 'vitest';
 import type { FrameClock } from './scheduler';
+import { testLocale } from './testLocale';
 import { TimeSeriesChart, type FrameReport } from './TimeSeriesChart';
 
 function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_SAFE_INTEGER) {
@@ -47,14 +48,14 @@ function manualClock() {
   return { clock, frame };
 }
 
-/** 10 stations sampled every 5 minutes, in store order, with a deterministic wiggle. Core-only (P10). */
-function dataset(rows: number): StationSeries {
+/** 10 stations sampled every `step` minutes, in store order, with a deterministic wiggle. Core-only (P10). */
+function dataset(rows: number, step = 5): StationSeries {
   const stationCount = 10;
   const obs = allocateObservations(rows);
   for (let i = 0; i < rows; i++) {
     const s = i % stationCount;
     obs.stationIdx[i] = s;
-    obs.t[i] = Math.floor(i / stationCount) * 5;
+    obs.t[i] = Math.floor(i / stationCount) * step;
     obs.bikesMech[i] = (s * 7 + ((i * 2654435761) >>> 27)) % 30;
     obs.status[i] = Status.InService;
   }
@@ -81,6 +82,7 @@ function setup(
   const chart = new TimeSeriesChart(host, {
     renderer: fake.renderer,
     decimation: options.decimation ?? 'none',
+    locale: testLocale('en'),
     clock,
     ...(options.budget === undefined ? {} : { liveDecimationBudget: options.budget }),
   });
@@ -197,6 +199,7 @@ describe('TimeSeriesChart', () => {
     const { clock, frame } = manualClock();
     const chart = new TimeSeriesChart(host, {
       renderer: fakeRenderer().renderer,
+      locale: testLocale('en'),
       clock,
       describe: (hit) => [`station ${String(hit.station)}`, `${String(hit.y)} bikes`],
     });
@@ -223,6 +226,76 @@ describe('TimeSeriesChart', () => {
     frame();
     expect(hits.at(-1)).toBeNull();
     expect(group?.getAttribute('visibility')).toBe('hidden');
+  });
+
+  test('the axis and the default tooltip speak the locale', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    hosts.push(host);
+    const { clock, frame } = manualClock();
+    const chart = new TimeSeriesChart(host, {
+      renderer: fakeRenderer().renderer,
+      locale: testLocale('ca'),
+      clock,
+    });
+    chart.resize(400, 200);
+    // Twelve-hour samples over ~100 days from 2018-01-01: the ticks land on months.
+    chart.setData(dataset(2_000, 12 * 60));
+    frame();
+    const ticks = [...host.querySelectorAll('.bp-chart__axis--x .tick text')].map(
+      (tick) => tick.textContent,
+    );
+    expect(ticks).toEqual(expect.arrayContaining(['febrer', 'març']));
+    expect(host.querySelector('.bp-chart')?.getAttribute('aria-label')).toBe(
+      'Bicicletes disponibles per estació al llarg del temps',
+    );
+
+    // Dense samples (as in the hover test) so the pointer lands on a line.
+    chart.setData(dataset(2_000));
+    frame();
+    host
+      .querySelector('.bp-chart__overlay')
+      ?.dispatchEvent(new MouseEvent('pointermove', { clientX: 200, clientY: 100, bubbles: true }));
+    frame();
+    expect(host.querySelector('.bp-chart__tooltip-text')?.textContent).toMatch(
+      /^Estació \d+(dg|dl|dt|dc|dj|dv|ds)\. \d+ [a-zç.]+ 2018, \d\d:\d\d UTC\d+ bicicletes$/,
+    );
+  });
+
+  test('setLocale redraws the axes and messages without re-uploading', () => {
+    const { chart, host, fake, frame, reports } = setup({ maxPoints: 1_000 });
+    chart.setLocale(testLocale('ca'));
+    chart.setData(dataset(20_000));
+    frame();
+    expect(reports.at(-1)?.skipped).toBe(
+      "CANVAS: com a màxim 1.000 punts (se n'han demanat 20.000)",
+    );
+    const uploads = fake.uploads.length;
+
+    chart.setLocale(testLocale('en'));
+    frame();
+    expect(fake.uploads).toHaveLength(uploads);
+    expect(reports.at(-1)?.skipped).toBe('CANVAS is capped at 1,000 points (20,000 requested)');
+    expect(host.querySelector('.bp-chart')?.getAttribute('aria-label')).toBe(
+      'Bikes available per station over time',
+    );
+  });
+
+  test('switching locale on uploaded data keeps the upload', () => {
+    const { chart, host, fake, frame } = setup();
+    chart.setData(dataset(2_000, 12 * 60));
+    frame();
+    const before = [...host.querySelectorAll('.bp-chart__axis--x .tick text')].map(
+      (tick) => tick.textContent,
+    );
+    chart.setLocale(testLocale('ca'));
+    frame();
+    const after = [...host.querySelectorAll('.bp-chart__axis--x .tick text')].map(
+      (tick) => tick.textContent,
+    );
+    expect(before).toContain('February');
+    expect(after).toContain('febrer');
+    expect(fake.uploads).toHaveLength(1);
   });
 
   test('destroy removes the DOM and stops drawing', () => {

@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import '@bicing/charts/styles.css';
-import type { Decimation, FrameReport, Hit, RendererKind } from '@bicing/charts';
+import type {
+  ChartFormat,
+  ChartLocale,
+  Decimation,
+  FrameReport,
+  Hit,
+  RendererKind,
+} from '@bicing/charts';
 import type { StationSeries } from '@bicing/core';
 import { ref, toRef } from 'vue';
 import classes from './TimeSeriesChart.module.scss';
@@ -13,7 +20,8 @@ const props = withDefaults(
     decimation?: Decimation;
     colorScale?: (t: number) => string;
     alpha?: number;
-    describe?: (hit: Hit) => readonly string[];
+    locale: ChartLocale;
+    describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   }>(),
   {
     renderer: 'webgl',
@@ -35,6 +43,7 @@ const chart = useTimeSeriesChart(host, {
   decimation: toRef(props, 'decimation'),
   colorScale: toRef(props, 'colorScale'),
   alpha: toRef(props, 'alpha'),
+  locale: toRef(props, 'locale'),
   ...(props.describe ? { describe: props.describe } : {}),
   onFrame: (report) => {
     emit('frame', report);

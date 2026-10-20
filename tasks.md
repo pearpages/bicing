@@ -11,7 +11,7 @@ phases move there with their task IDs intact.
 ADR 0011, P27. Done before Phase 2 so the Phase 2 UI is written in Catalan from the start.
 
 - [x] **I1** web: `i18n/` with `messages.ca.ts` (source, defines `Messages`) and `messages.en.ts: Messages`; `useI18n` with resolution `?lang=` → localStorage (try/catch) → `ca`; updates `<html lang>`, title and description; a language switcher (Català / English) in the header; `index.html` in Catalan. _Done when:_ removing a key from `en` fails typecheck (verified, then reverted) and resolution is unit-tested.
-- [ ] **I2** charts: a `ChartLocale` option and `setLocale()` (axes and overlay dirty); axis ticks and the tooltip use a `d3-time-format` locale (`ca-ES`, `en-GB`), with numbers, the station label, the cap message and the accessible label from the locale; the Vue binding passes it through. _Done when:_ tests show Catalan month and weekday names on the axis and in the tooltip, and switching locale redraws without re-uploading data.
+- [x] **I2** charts: a `ChartLocale` option and `setLocale()` (axes and overlay dirty); axis ticks and the tooltip use a `d3-time-format` locale (`ca-ES`, `en-GB`), with numbers, the station label, the cap message and the accessible label from the locale; the Vue binding passes it through. _Done when:_ tests show Catalan month and weekday names on the axis and in the tooltip, and switching locale redraws without re-uploading data.
 - [ ] **I3** web: move all UI copy into the dictionaries (controls, perf panel, legend, frame trace, results dialog, benchmark notes and exported Markdown) and format numbers with the active locale. _Done when:_ no user-facing English literal is left in `apps/web/src` outside `i18n/` (grep), and both languages are checked in the browser.
 
 ### Phase 2 — Real data
@@ -42,6 +42,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
 - [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
 - [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
+- [ ] **D9** Split `packages/charts/src/TimeSeriesChart.ts` (~520 lines, P17 says ~250): axes, hover/tooltip and the zoom policy are separable.
 
 ### Scaffold follow-ups
 
@@ -69,6 +70,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-20: I2 done — `ChartLocale` + `setLocale()`: Catalan/English axis ticks, tooltip and cap message; no re-upload on switch.
 - [x] 2026-10-20: I1 done — typed `ca`/`en` dictionaries, `useI18n`, language switcher, Catalan `index.html`.
 - [x] 2026-09-28: Planned Catalan-first i18n (ADR 0011, P27): tasks I1–I3 go before Phase 2.
 - [x] 2026-09-28: D1 done — repo pushed to `pearpages/bicing`, CI green on the first run.

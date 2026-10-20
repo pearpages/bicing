@@ -1,6 +1,8 @@
 import {
   createRenderer,
   TimeSeriesChart,
+  type ChartFormat,
+  type ChartLocale,
   type Decimation,
   type FrameReport,
   type Hit,
@@ -23,9 +25,10 @@ export interface UseTimeSeriesChartOptions {
   readonly renderer: Readonly<Ref<RendererKind>>;
   readonly decimation: Readonly<Ref<Decimation>>;
   readonly colorScale: Readonly<Ref<(t: number) => string>>;
+  readonly locale: Readonly<Ref<ChartLocale>>;
   /** Line opacity, applied when a renderer is created. */
   readonly alpha?: Readonly<Ref<number | undefined>>;
-  readonly describe?: (hit: Hit) => readonly string[];
+  readonly describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   readonly onFrame?: (report: FrameReport) => void;
   readonly onHover?: (hit: Hit | null) => void;
   readonly onView?: (domain: readonly [number, number]) => void;
@@ -34,7 +37,7 @@ export interface UseTimeSeriesChartOptions {
 /**
  * Binds a TimeSeriesChart to a host element for the component's lifetime (ADR 0007).
  *
- * Vue owns the host and the settings (renderer kind, decimation, colors). It never owns the data. The
+ * Vue owns the host and the settings (renderer kind, decimation, colors, locale). It never owns the data. The
  * controller is `markRaw`ed and held in a `shallowRef`, and the series is `toRaw`ed before it reaches
  * the chart. A reactive StationSeries would route every `series.x[i]` in decimation and picking
  * through a Proxy trap. Watches are shallow, so new data means a new object identity, not a deep
@@ -58,6 +61,7 @@ export function useTimeSeriesChart(
         renderer: createRenderer(options.renderer.value, settings()),
         decimation: options.decimation.value,
         colorScale: options.colorScale.value,
+        locale: options.locale.value,
         ...(options.describe ? { describe: options.describe } : {}),
       }),
     );
@@ -72,6 +76,7 @@ export function useTimeSeriesChart(
   watch(options.renderer, (kind) => chart.value?.setRenderer(createRenderer(kind, settings())));
   watch(options.decimation, (decimation) => chart.value?.setDecimation(decimation));
   watch(options.colorScale, (colorScale) => chart.value?.setColorScale(colorScale));
+  watch(options.locale, (locale) => chart.value?.setLocale(locale));
 
   onBeforeUnmount(() => {
     chart.value?.destroy();

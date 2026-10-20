@@ -8,7 +8,6 @@ import {
 import { axisBottom, axisLeft } from 'd3-axis';
 import { scaleLinear, scaleUtc } from 'd3-scale';
 import { pointer, select } from 'd3-selection';
-import { utcFormat } from 'd3-time-format';
 import {
   zoom,
   zoomIdentity,
@@ -17,6 +16,7 @@ import {
   type ZoomTransform,
 } from 'd3-zoom';
 import { createChartDom, type ChartDom } from './layers';
+import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
 import { decimatedLines, fullLines, visiblePointCount, type Decimation } from './lines';
 import { FrameScheduler, type FrameClock } from './scheduler';
@@ -27,7 +27,6 @@ type Layer = 'data' | 'axes' | 'overlay';
 const PICK_RADIUS_PX = 24;
 const TOOLTIP_LINE_HEIGHT = 16;
 const TOOLTIP_PADDING = 8;
-const formatTime = utcFormat('%a %d %b %Y, %H:%M UTC');
 type Domain = readonly [number, number];
 
 /**
@@ -64,9 +63,12 @@ export interface TimeSeriesChartOptions {
   readonly colorScale?: (t: number) => string;
   /** The narrowest zoom, in minutes. */
   readonly minSpanMinutes?: number;
-  readonly label?: string;
-  /** Tooltip lines for a hovered sample. The app knows station names; the chart only knows indices. */
-  readonly describe?: (hit: Hit) => readonly string[];
+  readonly locale: ChartLocale;
+  /**
+   * Tooltip lines for a hovered sample. The app knows station names; the chart only knows indices.
+   * `format` follows the active locale, so the app's lines switch language with the axes.
+   */
+  readonly describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   /** Visible points above which a gesture keeps the stale decimation. Defaults to 2M (ADR 0006). */
   readonly liveDecimationBudget?: number;
   /** For tests. Defaults to requestAnimationFrame. */
@@ -90,13 +92,15 @@ export class TimeSeriesChart {
   private readonly frameListeners = new Set<Listener<FrameReport>>();
   private readonly viewListeners = new Set<Listener<Domain>>();
   private readonly hoverListeners = new Set<Listener<Hit | null>>();
-  private readonly describe: (hit: Hit) => readonly string[];
+  private readonly describe: ((hit: Hit, format: ChartFormat) => readonly string[]) | null;
   private pointerAt: readonly [number, number] | null = null;
   private hit: Hit | null = null;
 
   private renderer: Renderer;
   private decimation: Decimation;
   private colorScale: (t: number) => string;
+  private locale: ChartLocale;
+  private format: ChartFormat;
   private series: StationSeries | null = null;
   private full: LineSeriesData = EMPTY_LINES;
   private fullDomain: Domain = [0, 1];
@@ -109,23 +113,20 @@ export class TimeSeriesChart {
   /** What the renderer currently holds, and for which decimation request (null = full resolution). */
   private uploaded: LineSeriesData | null = null;
   private uploadedKey: string | null = null;
-  private skipped: string | null = null;
+  /** Set while the renderer refuses the data; the message is worded per frame, in the active locale. */
+  private capped: { readonly max: number; readonly requested: number } | null = null;
   private interacting = false;
 
   constructor(host: HTMLElement, options: TimeSeriesChartOptions) {
-    this.dom = createChartDom(host, options.label ?? 'Bikes available per station over time');
+    this.locale = options.locale;
+    this.format = chartFormat(options.locale);
+    this.dom = createChartDom(host, options.locale.label);
     this.renderer = options.renderer;
     this.decimation = options.decimation ?? 'none';
     this.colorScale = options.colorScale ?? (() => 'rgb(42, 120, 214)');
     this.minSpan = options.minSpanMinutes ?? 30;
     this.liveBudget = options.liveDecimationBudget ?? LIVE_DECIMATION_BUDGET;
-    this.describe =
-      options.describe ??
-      ((hit) => [
-        `Station ${String(hit.station + 1)}`,
-        formatTime(new Date(toEpochMs(hit.t))),
-        `${String(hit.y)} bikes`,
-      ]);
+    this.describe = options.describe ?? null;
     this.scheduler = new FrameScheduler<Layer>((dirty) => {
       this.draw(dirty);
     }, options.clock);
@@ -207,6 +208,16 @@ export class TimeSeriesChart {
     this.colorScale = colorScale;
     this.renderer.setColorScale(colorScale);
     this.scheduler.invalidate('data');
+  }
+
+  /** Swaps the language of the axes, tooltip and messages. The data isn't touched. */
+  setLocale(locale: ChartLocale): void {
+    this.locale = locale;
+    this.format = chartFormat(locale);
+    this.dom.root.setAttribute('aria-label', locale.label);
+    this.scheduler.invalidate('axes', 'overlay');
+    // Only to re-word the cap message in the frame report; `prepare` keeps the upload.
+    if (this.capped) this.scheduler.invalidate('data');
   }
 
   /** The visible x-domain, in minutes since the epoch. */
@@ -354,7 +365,9 @@ export class TimeSeriesChart {
     setAttributes(hover.marker, { cx: px, cy: py });
     hover.marker.setAttribute('fill', this.colorScale(series?.meanFill[hit.station] ?? 0));
 
-    const lines = this.describe(hit);
+    const lines = this.describe
+      ? this.describe(hit, this.format)
+      : [this.locale.station(hit.station + 1), this.format.time(hit.t), this.locale.bikes(hit.y)];
     hover.tooltipText.replaceChildren(
       ...lines.map((text, i) => {
         const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -379,12 +392,10 @@ export class TimeSeriesChart {
     const { data, key, stale } = this.prepare(domain);
     if (data !== this.uploaded) {
       if (data.x.length > this.renderer.maxPoints) {
-        this.skipped =
-          `${this.renderer.kind.toUpperCase()} is capped at ${this.renderer.maxPoints.toLocaleString('en')} points ` +
-          `(${data.x.length.toLocaleString('en')} requested)`;
+        this.capped = { max: this.renderer.maxPoints, requested: data.x.length };
         this.renderer.setData(EMPTY_LINES);
       } else {
-        this.skipped = null;
+        this.capped = null;
         this.renderer.setData(data);
       }
       this.uploaded = data;
@@ -398,13 +409,19 @@ export class TimeSeriesChart {
       renderer: this.renderer.kind,
       decimation: this.decimation,
       totalPoints: this.series?.x.length ?? 0,
-      uploadedPoints: this.skipped ? 0 : data.x.length,
+      uploadedPoints: this.capped ? 0 : data.x.length,
       drawnPoints: stats.points,
       drawCalls: stats.drawCalls,
       prepareMs: prepared - started,
       renderMs: rendered - prepared,
       stale,
-      skipped: this.skipped,
+      skipped: this.capped
+        ? this.locale.capped(
+            this.renderer.kind.toUpperCase(),
+            this.format.number(this.capped.max),
+            this.format.number(this.capped.requested),
+          )
+        : null,
     };
     for (const listener of this.frameListeners) listener(report);
   }
@@ -455,10 +472,19 @@ export class TimeSeriesChart {
 
     select(this.dom.xAxis)
       .attr('transform', `translate(${String(left)},${String(top + this.height)})`)
-      .call(axisBottom(x).ticks(Math.max(2, Math.floor(this.width / 110))));
+      .call(
+        axisBottom(x)
+          .ticks(Math.max(2, Math.floor(this.width / 110)))
+          // d3-axis types the tick as Date | NumberValue, but a UTC scale only produces Dates.
+          .tickFormat((d) => this.format.tick(d instanceof Date ? d : new Date(d.valueOf()))),
+      );
     select(this.dom.yAxis)
       .attr('transform', `translate(${String(left)},${String(top)})`)
-      .call(axisLeft(y).ticks(yTicks));
+      .call(
+        axisLeft(y)
+          .ticks(yTicks)
+          .tickFormat((n) => this.format.number(n.valueOf())),
+      );
     select(this.dom.grid)
       .attr('transform', `translate(${String(left)},${String(top)})`)
       .call(

@@ -3,6 +3,9 @@ export type Locale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: Locale = 'ca';
 
+/** The region-qualified tags for `Intl` and d3-time-format, which ship `ca-ES` and `en-GB`. */
+export const FORMAT_TAGS: Record<Locale, string> = { ca: 'ca-ES', en: 'en-GB' };
+
 /** Each language is named in itself, so a visitor finds theirs whatever language is active. */
 export const LANGUAGE_NAMES: Record<Locale, string> = { ca: 'Català', en: 'English' };
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import type {
+  ChartFormat,
   TimeSeriesChart as ChartController,
   Decimation,
   FrameReport,
   Hit,
   RendererKind,
 } from '@bicing/charts';
-import { toEpochMs } from '@bicing/core';
 import { TimeSeriesChart } from '@bicing/vue';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import classes from './App.module.scss';
@@ -22,6 +22,7 @@ import { DEFAULT_ROWS, SIZE_TIERS } from './data/sizes';
 import { useDataset } from './data/useDataset';
 import { formatInt } from './format';
 import { LANGUAGE_NAMES, LOCALES, type Locale } from './i18n/locales';
+import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
 import { occupancyScale, rampStops, useColorScheme } from './theme';
 
@@ -56,6 +57,7 @@ const languageOptions: readonly Option<Locale>[] = LOCALES.map((value) => ({
 
 const { locale, t, setLocale } = useI18n();
 const language = computed({ get: () => locale.value, set: setLocale });
+const chartText = computed(() => chartLocale(locale.value, t.value));
 
 const renderer = ref<RendererKind>('webgl');
 const decimation = ref<Decimation>('none');
@@ -77,22 +79,13 @@ const summary = computed(() => {
   }. Synthetic data with the real schema.`;
 });
 
-const dateFormat = new Intl.DateTimeFormat('en-GB', {
-  weekday: 'short',
-  day: 'numeric',
-  month: 'short',
-  hour: '2-digit',
-  minute: '2-digit',
-  timeZone: 'UTC',
-});
-
-function describe(hit: Hit): readonly string[] {
+function describe(hit: Hit, format: ChartFormat): readonly string[] {
   const stations = dataset.current.value?.stations;
   const name = stations?.names[hit.station] ?? `Station ${String(hit.station + 1)}`;
   const capacity = stations?.capacity[hit.station];
   return [
     name,
-    `${dateFormat.format(new Date(toEpochMs(hit.t)))} UTC`,
+    format.time(hit.t),
     capacity
       ? `${String(hit.y)} of ${String(capacity)} bikes available`
       : `${String(hit.y)} bikes available`,
@@ -228,6 +221,7 @@ onMounted(() => void dataset.load(rows.value));
             :decimation="decimation"
             :color-scale="colorScale"
             :alpha="0.35"
+            :locale="chartText"
             :describe="describe"
             @frame="onFrame"
           />
