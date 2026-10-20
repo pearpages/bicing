@@ -69,6 +69,7 @@ ADR 0012). `--read-month` reads that into `ObservationColumns` + `StationTable` 
      the same threshold at which lines already break, plus the months the catalogue has no archive for and the UTC
      days with no snapshot at all. Coverage runs from the first catalogued month to the end of the last one, so
      a month that starts late or ends early shows up as a gap too. Detected from the data, never assumed.
+     `unusableMonths` lists months whose status archive holds the wrong file (ADR 0012), with the reason.
    - `manifest.json`: each file with its rows, bytes and time range, for the browser loader (T2.4).
 
    Parquet columns keep the compact types (`stationIdx` UINT16, `t` UINT32, the rest UINT8), Snappy-compressed so

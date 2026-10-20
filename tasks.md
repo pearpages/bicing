@@ -42,6 +42,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
 - [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
 - [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
+- [ ] **D12** `prepare-data` downloads: retry HTTP 429/503 with backoff. On 2026-10-20 a full run at `--concurrency 3` got 165 × HTTP 503 after 9 downloads; one at a time worked. Consider making 1 the default.
 - [x] **D11** ~~2019-era information CSVs have a misaligned header~~. Measured: only station 1's rows in 2019-03 are shifted. Handled in T2.2 by checking capacity against the readings (ADR 0012).
 - [ ] **D10** Synthetic station names are English (`Synthetic station 014`) and show in the Catalan tooltip: name them neutrally or in Catalan in `packages/synthetic` (real names replace them in Phase 2).
 - [ ] **D9** Split `packages/charts/src/TimeSeriesChart.ts` (~520 lines, P17 says ~250): axes, hover/tooltip and the zoom policy are separable.

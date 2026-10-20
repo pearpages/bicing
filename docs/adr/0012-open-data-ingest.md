@@ -15,6 +15,9 @@ T2.2 assumed the monthly archives hold JSON snapshots. They don't (checked on 20
 - **Drift:** the column order and the column set change between years. Individual rows can be shifted too: in
   2019-03 all 884 information rows of station 1 are off by one field, so `capacity` holds `1` while the station
   reports 30 bikes plus docks. Every other station that month, and every row in 2022-06 and 2026-09, lines up.
+- **Broken archives** (found by the first full build, 2026-10-20): 2022-01's information CSV has a corrupted
+  header (binary bytes after `ttl`); 2022-03's information archive holds that month's status CSV, byte for byte;
+  2025-10's status archive holds that month's information CSV. The other archive of each month is fine.
 - **Stale reports:** stations in maintenance or planned repeat a months-old `last_reported` in every snapshot
   (22,916 rows in 2026-09).
 - **Two timestamps:** `last_updated` is when the snapshot was taken, the same for every station.
@@ -48,6 +51,15 @@ untrusted input (security.md).
   Station ids are mapped to dense indices `0..N-1` in ascending id order. A station present in the status file
   but missing from the information file still gets a row, named `#<id>` with no coordinates (NaN), and is
   counted in the report. T2.3 builds one mapping across all months for the merged file.
+- **A broken archive keeps what's valid** (chosen by the owner, 2026-10-20). Before staging, each CSV is classified
+  by its header: it has the status columns, the information columns, or it's unreadable.
+  - A status archive that isn't a status CSV makes the month **unusable**. It isn't staged, and `gaps.json` lists
+    it under `unusableMonths` with the reason. Its silence still shows up as gaps, because they're detected from
+    the snapshots.
+  - An information archive that isn't an information CSV is dropped with a recorded reason. The month keeps its
+    readings, and its stations take their names and positions from the other months (publish already prefers
+    the latest month that has them).
+  - Any other failure still stops the build before anything is published.
 - **Capacity is checked against the readings.** Casts can't see a shifted row, but a station's capacity can't be
   below half the bikes plus free docks it reported. When it is, as with station 1 in 2019-03, or a station
   closed or shrunk during the month whose latest row says 0, its capacity becomes the most it reported, and it's
