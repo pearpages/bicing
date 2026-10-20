@@ -17,6 +17,10 @@ uploads. All data is generated in a Web Worker from a seed.
 
 - **URL input**: only `?automation`, which exposes `window.bicingBenchmark` (run a benchmark, read its Markdown). It
   only reaches what the page's own UI already does, so it's accepted (see Known risks).
+- **`?lang=`**: picks the UI language. It's matched against the `ca` / `en` allowlist (`apps/web/src/i18n/locales.ts`)
+  and anything else is ignored, so the raw value never reaches the DOM.
+- **`localStorage`** (`bicing-pulse:lang`): only the remembered language. A read goes through the same allowlist, since
+  another script on the origin could have written it, and storage failures are caught, not fatal.
 - **Headers** (`nginx.conf`, mirrored in `apps/web/vite.config.ts`): `Cross-Origin-Opener-Policy: same-origin` and
   `Cross-Origin-Embedder-Policy: credentialless` for cross-origin isolation. There's no Content-Security-Policy yet.
 - **Rendering**: text reaches the DOM through Vue templates and d3 `.text()`, never through `innerHTML`, so there's

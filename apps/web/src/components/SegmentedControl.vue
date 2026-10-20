@@ -7,6 +7,8 @@ export interface Option<V> {
   /** Shown as the option's tooltip, e.g. why it's marked as a stress test. */
   readonly title?: string;
   readonly muted?: boolean;
+  /** The label's language when it differs from the page's, e.g. language names (WCAG 3.1.2). */
+  readonly lang?: string;
 }
 
 defineProps<{
@@ -36,7 +38,7 @@ const model = defineModel<T>({ required: true });
           :name="name"
           :value="option.value"
         />
-        <span :class="classes.text">{{ option.label }}</span>
+        <span :class="classes.text" :lang="option.lang">{{ option.label }}</span>
       </label>
     </div>
   </fieldset>

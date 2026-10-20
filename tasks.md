@@ -10,7 +10,7 @@ phases move there with their task IDs intact.
 
 ADR 0011, P27. Done before Phase 2 so the Phase 2 UI is written in Catalan from the start.
 
-- [ ] **I1** web: `i18n/` with `messages.ca.ts` (source, defines `Messages`) and `messages.en.ts: Messages`; `useI18n` with resolution `?lang=` → localStorage (try/catch) → `ca`; updates `<html lang>`, title and description; a language switcher (Català / English) in the header; `index.html` in Catalan. _Done when:_ removing a key from `en` fails typecheck (verified, then reverted) and resolution is unit-tested.
+- [x] **I1** web: `i18n/` with `messages.ca.ts` (source, defines `Messages`) and `messages.en.ts: Messages`; `useI18n` with resolution `?lang=` → localStorage (try/catch) → `ca`; updates `<html lang>`, title and description; a language switcher (Català / English) in the header; `index.html` in Catalan. _Done when:_ removing a key from `en` fails typecheck (verified, then reverted) and resolution is unit-tested.
 - [ ] **I2** charts: a `ChartLocale` option and `setLocale()` (axes and overlay dirty); axis ticks and the tooltip use a `d3-time-format` locale (`ca-ES`, `en-GB`), with numbers, the station label, the cap message and the accessible label from the locale; the Vue binding passes it through. _Done when:_ tests show Catalan month and weekday names on the axis and in the tooltip, and switching locale redraws without re-uploading data.
 - [ ] **I3** web: move all UI copy into the dictionaries (controls, perf panel, legend, frame trace, results dialog, benchmark notes and exported Markdown) and format numbers with the active locale. _Done when:_ no user-facing English literal is left in `apps/web/src` outside `i18n/` (grep), and both languages are checked in the browser.
 
@@ -69,6 +69,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-20: I1 done — typed `ca`/`en` dictionaries, `useI18n`, language switcher, Catalan `index.html`.
 - [x] 2026-09-28: Planned Catalan-first i18n (ADR 0011, P27): tasks I1–I3 go before Phase 2.
 - [x] 2026-09-28: D1 done — repo pushed to `pearpages/bicing`, CI green on the first run.
 - [x] 2026-09-26: Maturity assessment — verdict Not ready, 11 gaps added to Open.

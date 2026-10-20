@@ -21,6 +21,8 @@ import SegmentedControl, { type Option } from './components/SegmentedControl.vue
 import { DEFAULT_ROWS, SIZE_TIERS } from './data/sizes';
 import { useDataset } from './data/useDataset';
 import { formatInt } from './format';
+import { LANGUAGE_NAMES, LOCALES, type Locale } from './i18n/locales';
+import { useI18n } from './i18n/useI18n';
 import { occupancyScale, rampStops, useColorScheme } from './theme';
 
 const rendererOptions: readonly Option<RendererKind>[] = [
@@ -45,6 +47,15 @@ const sizeOptions: readonly Option<number>[] = SIZE_TIERS.map((tier) => ({
     ? { title: 'Stress test: about 800 MB in the tab. It may fail on machines with less memory.' }
     : {}),
 }));
+
+const languageOptions: readonly Option<Locale>[] = LOCALES.map((value) => ({
+  value,
+  label: LANGUAGE_NAMES[value],
+  lang: value,
+}));
+
+const { locale, t, setLocale } = useI18n();
+const language = computed({ get: () => locale.value, set: setLocale });
 
 const renderer = ref<RendererKind>('webgl');
 const decimation = ref<Decimation>('none');
@@ -194,6 +205,12 @@ onMounted(() => void dataset.load(rows.value));
             Measure all
           </button>
         </div>
+        <SegmentedControl
+          v-model="language"
+          :legend="t.language.legend"
+          name="language"
+          :options="languageOptions"
+        />
       </div>
       <p v-if="benchmark.progress.value" :class="classes.progress" role="status">
         Measuring {{ benchmark.progress.value.index }} of {{ benchmark.progress.value.total }}:
