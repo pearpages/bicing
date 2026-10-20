@@ -1,7 +1,8 @@
 import { rm } from 'node:fs/promises';
 import { join } from 'node:path';
 import { extractSingleCsv } from './extract';
-import { readMonth, type MonthData, type MonthInput } from './month';
+import { readMonth, type MonthData } from './columns';
+import type { MonthInput } from './month';
 
 /**
  * One cached month (T2.1's `data/raw/<dataset>/<YYYY-MM>.7z`) → columns. The extracted CSVs, about

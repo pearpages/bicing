@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { buildStationSeries, Status, toMinutes } from '@bicing/core';
 import { afterEach, beforeEach, describe, expect, test } from 'vitest';
 import { createArchive, INFO_ROWS, infoCsv, sep, STATUS_ROWS, statusCsv } from './fixture';
-import { readMonth } from './month';
+import { readMonth } from './columns';
 import { prepareMonth } from './prepare';
 
 let dir: string;
