@@ -36,7 +36,11 @@ export interface MonthInput {
   /** `YYYY-MM`: readings outside it (with a day of margin) are invalid. */
   readonly month: string;
   readonly statusCsv: string;
-  readonly infoCsv: string;
+  /**
+   * `null` when the month's information archive is broken (ADR 0012): the readings are kept, and
+   * the stations get their names and positions from other months when published.
+   */
+  readonly infoCsv: string | null;
   /** Share of invalid rows above which the month fails instead of being quietly thinned. */
   readonly maxInvalidShare?: number;
   /**
@@ -89,6 +93,24 @@ async function requireColumns(
   if (missing.length > 0) throw new Error(`${label}: missing columns ${missing.join(', ')}`);
 }
 
+export type CsvKind = 'status' | 'information' | 'unreadable';
+
+/**
+ * What a CSV holds, judged by its header: the city has uploaded one dataset's file under the
+ * other's name, and a header with binary bytes in it (ADR 0012).
+ */
+export async function csvKind(connection: DuckDBConnection, path: string): Promise<CsvKind> {
+  try {
+    const reader = await connection.runAndReadAll(`DESCRIBE SELECT * FROM ${csv(path)}`);
+    const present = new Set(reader.getRows().map((row) => String(row[0])));
+    if (STATUS_COLUMNS.every((c) => present.has(c))) return 'status';
+    if (INFO_COLUMNS.every((c) => present.has(c))) return 'information';
+  } catch {
+    // DuckDB couldn't even parse the header.
+  }
+  return 'unreadable';
+}
+
 function failIfOver(
   label: string,
   what: string,
@@ -116,9 +138,16 @@ export async function stageTables(
   const { start, end } = monthBounds(input.month);
   const label = (kind: string) => `${input.month} ${kind}`;
   const status = csv(input.statusCsv);
-  const info = csv(input.infoCsv);
   await requireColumns(connection, status, STATUS_COLUMNS, label('status'));
-  await requireColumns(connection, info, INFO_COLUMNS, label('information'));
+  // No usable information file: an empty source with the right columns keeps the SQL below unchanged.
+  const info =
+    input.infoCsv === null
+      ? `(SELECT NULL::VARCHAR AS station_id, NULL::VARCHAR AS name, NULL::VARCHAR AS lat,
+                 NULL::VARCHAR AS lon, NULL::VARCHAR AS capacity, NULL::VARCHAR AS last_updated
+          WHERE false)`
+      : csv(input.infoCsv);
+  if (input.infoCsv !== null)
+    await requireColumns(connection, info, INFO_COLUMNS, label('information'));
 
   // Every field is cast with TRY_CAST, so a bad value becomes NULL and the row fails `valid`.
   await connection.run(`

@@ -25,6 +25,11 @@ export async function scalar(connection: DuckDBConnection, sql: string): Promise
   return Number(value ?? 0);
 }
 
+/** A nullable numeric column: SQL NULL (and a missing cell) becomes `null`. */
+export function asNumberOrNull(value: DuckDBValue | undefined): number | null {
+  return value === null || value === undefined ? null : asNumber(value);
+}
+
 export function asNumber(value: DuckDBValue): number {
   if (typeof value === 'number') return value;
   if (typeof value === 'bigint') return Number(value);
