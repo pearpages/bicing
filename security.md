@@ -31,10 +31,22 @@ uploads. All data is generated in a Web Worker from a seed.
 
 - Parquet fetched from a configurable external base URL (CORS + range requests). Treat those files as untrusted:
   validate the schema and bounds (station indices < station count, sorted `t`) before handing columns to renderers.
-- `tools/prepare-data` downloads from the Open Data BCN CKAN API and extracts 7z archives. Extract only to
-  `data/`, and reject entries with absolute paths or `..` (path traversal). Use HTTPS only.
+- Extracting the 7z archives (T2.2): extract only to `data/`, and reject entries with absolute paths or `..` (path
+  traversal).
 
 **Node CLIs (`tools/*`)**: run locally by the developer. `tools/synthetic` writes only to its `--out` directory.
+
+- **`tools/prepare-data` downloads** (built in T2.1). Archive URLs come from the CKAN `package_show` response, which
+  is treated as untrusted (`tools/prepare-data/src/ckan.ts`):
+  - **Origin:** only HTTPS URLs on `opendata-ajuntament.barcelona.cat` are kept, and the final URL after redirects
+    is checked again.
+  - **Names:** a resource must be a monthly `.7z` that needs no token. The file name on disk is built from the
+    parsed dataset and month (`<dataset>/<YYYY-MM>.7z`), never from the response, so a name can't escape `--out`.
+  - **Size and partial files:** a download is capped at CKAN's declared size, or 500 MB when there's none. It's
+    written to `.part` and renamed only once the size matches, so a failed download leaves nothing that looks
+    complete.
+  - **Manifest:** `data/raw/manifest.json` comes from our own previous run. A malformed one only causes
+    re-downloads.
 
 ## Secrets
 

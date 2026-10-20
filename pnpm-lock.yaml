@@ -416,6 +416,18 @@ importers:
         specifier: 3.3.11
         version: 3.3.11(typescript@6.0.3)
 
+  tools/prepare-data:
+    devDependencies:
+      '@types/node':
+        specifier: 24.13.6
+        version: 24.13.6
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
+      typescript:
+        specifier: 6.0.3
+        version: 6.0.3
+
   tools/synthetic:
     dependencies:
       '@bicing/core':

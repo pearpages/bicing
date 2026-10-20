@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit && pnpm -r --parallel typecheck",
     "lint": "eslint .",
     "test": "vitest",
-    "synth": "pnpm --filter @bicing/tool-synthetic synth"
+    "synth": "pnpm --filter @bicing/tool-synthetic synth",
+    "prepare-data": "pnpm --filter @bicing/tool-prepare-data prepare-data"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

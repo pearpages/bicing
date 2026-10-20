@@ -30,6 +30,7 @@ pnpm dev              # demo app on http://localhost:5173
 pnpm test -- --run    # unit + property tests, single run
 pnpm lint && pnpm typecheck
 pnpm build            # production build of apps/web
+pnpm prepare-data     # Open Data BCN archives → data/raw (~2.6 GB; --from/--to YYYY-MM, --dry-run)
 ```
 
 Docker (static build served by nginx, with cross-origin isolation headers):
@@ -112,8 +113,9 @@ its samples lagged behind configuration changes during the automated run (see th
 
 Station status history and station information come from
 [Open Data BCN](https://opendata-ajuntament.barcelona.cat/) (datasets `estat-estacions-bicing` and
-`informacio-estacions-bicing`). Real data arrives in Phase 2. Until then, everything runs on
-seeded synthetic data with the same schema.
+`informacio-estacions-bicing`). `pnpm prepare-data` finds the monthly archives through the CKAN API and caches them in
+`data/raw` (a re-run only fetches what changed). The app switches to real data later in Phase 2. Until then,
+everything runs on seeded synthetic data with the same schema.
 
 ## License
 

@@ -19,7 +19,7 @@ ADR 0011, P27. Done before Phase 2 so the Phase 2 UI is written in Catalan from 
 Check versions before adding anything (P25). Parquet in the browser: compare `hyparquet` (pure JS, range requests),
 `parquet-wasm` and DuckDB-WASM (only dev builds were published as of 2026-09) in an ADR before choosing.
 
-- [ ] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
+- [x] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
 - [ ] **T2.2** Extract the monthly 7z archives; read the JSON snapshots with DuckDB (Node); join the station information; map IDs to dense indices; cast to the compact types; sort by (t, stationIdx). _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture.
 - [ ] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
 - [ ] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
@@ -71,6 +71,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-20: T2.1 done — `pnpm prepare-data` finds 180 monthly archives (~2.6 GB, 2019-03 → 2026-09) via CKAN and caches them in `data/raw`; a second run downloads nothing.
 - [x] 2026-10-20: I3 done — all UI copy, notes and the exported Markdown in the `ca`/`en` dictionaries, numbers in the active locale; both languages checked in Chrome.
 - [x] 2026-10-20: I2 done — `ChartLocale` + `setLocale()`: Catalan/English axis ticks, tooltip and cap message; no re-upload on switch.
 - [x] 2026-10-20: I1 done — typed `ca`/`en` dictionaries, `useI18n`, language switcher, Catalan `index.html`.
