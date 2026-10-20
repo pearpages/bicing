@@ -19,8 +19,8 @@ export interface ScenarioMeasurement {
   /** Frames drawn with a stale downsampling (the live budget was exceeded). */
   readonly staleFrames: number;
   readonly skipped: string | null;
-  /** Set when the numbers can't be trusted, e.g. the tab was hidden and rAF was throttled. */
-  readonly invalid: string | null;
+  /** The tab was hidden during the run and rAF was throttled, so the numbers can't be trusted. */
+  readonly hidden: boolean;
 }
 
 /**
@@ -85,9 +85,7 @@ export function runScenario(
         ),
         staleFrames: reports.filter((r) => r.stale).length,
         skipped: reports.find((r) => r.skipped)?.skipped ?? null,
-        invalid: hidden
-          ? 'The tab was hidden during the run, so the browser throttled frames.'
-          : null,
+        hidden,
       });
     };
     requestAnimationFrame(step);

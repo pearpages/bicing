@@ -1,5 +1,6 @@
 import { computed, readonly, ref, watch, type ComputedRef, type Ref } from 'vue';
-import { resolveLocale, type Locale } from './locales';
+import { numberFormats, type NumberFormats } from './format';
+import { FORMAT_TAGS, resolveLocale, type Locale } from './locales';
 import { ca, type Messages } from './messages.ca';
 import { en } from './messages.en';
 
@@ -34,6 +35,7 @@ function applyToDocument(locale: Locale, messages: Messages): void {
 // One language for the whole page, so the state is shared by every caller.
 const locale = ref<Locale>(resolveLocale(location.search, readStored()));
 const t = computed(() => DICTIONARIES[locale.value]);
+const fmt = computed(() => numberFormats(FORMAT_TAGS[locale.value]));
 
 watch(
   locale,
@@ -57,7 +59,8 @@ function setLocale(next: Locale): void {
 export function useI18n(): {
   locale: Readonly<Ref<Locale>>;
   t: ComputedRef<Messages>;
+  fmt: ComputedRef<NumberFormats>;
   setLocale: (next: Locale) => void;
 } {
-  return { locale: readonly(locale), t, setLocale };
+  return { locale: readonly(locale), t, fmt, setLocale };
 }

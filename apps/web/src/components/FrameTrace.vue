@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { FRAME_BUDGET_MS } from '../benchmark/perfMonitor';
+import { useI18n } from '../i18n/useI18n';
 import classes from './FrameTrace.module.scss';
 
 const props = defineProps<{ trace: Float64Array }>();
+const { t, fmt } = useI18n();
 
 const WIDTH = 240;
 const HEIGHT = 72;
@@ -37,14 +39,14 @@ const overBudget = computed(() => {
       :viewBox="`0 0 ${WIDTH} ${HEIGHT}`"
       preserveAspectRatio="none"
       role="img"
-      :aria-label="`Recent frame times; ${overBudget} of the last ${trace.length} frames were over budget`"
+      :aria-label="t.trace.label(fmt.int(overBudget), fmt.int(trace.length))"
     >
       <rect :class="classes.overZone" x="0" y="0" :width="WIDTH" :height="budgetY" />
       <line :class="classes.budget" x1="0" :x2="WIDTH" :y1="budgetY" :y2="budgetY" />
       <polyline :class="classes.line" :points="points" />
     </svg>
     <figcaption :class="classes.caption">
-      Frame time, last {{ trace.length }} frames. The line is the 16.7 ms budget for 60 fps.
+      {{ t.trace.caption(fmt.int(trace.length), fmt.ms(FRAME_BUDGET_MS)) }}
     </figcaption>
   </figure>
 </template>

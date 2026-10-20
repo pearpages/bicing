@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import type { BenchmarkResult } from '../benchmark/results';
-import { configLabel } from '../benchmark/results';
-import { formatInt, formatMs } from '../format';
+import { configLabel, resultNote } from '../benchmark/results';
+import { useI18n } from '../i18n/useI18n';
 import classes from './ResultsDialog.module.scss';
 
 const props = defineProps<{
@@ -11,6 +11,7 @@ const props = defineProps<{
   markdown: string;
 }>();
 const emit = defineEmits<{ close: [] }>();
+const { t, fmt } = useI18n();
 
 const dialog = ref<HTMLDialogElement | null>(null);
 const copied = ref(false);
@@ -38,53 +39,43 @@ async function copy(): Promise<void> {
     @close="emit('close')"
   >
     <header :class="classes.header">
-      <h2 id="results-title" :class="classes.title">Benchmark results</h2>
+      <h2 id="results-title" :class="classes.title">{{ t.results.title }}</h2>
       <div :class="classes.actions">
         <button type="button" :class="classes.button" :disabled="!markdown" @click="copy">
-          {{ copied ? 'Copied' : 'Copy as Markdown' }}
+          {{ copied ? t.results.copied : t.results.copy }}
         </button>
-        <button type="button" :class="classes.button" @click="emit('close')">Close</button>
+        <button type="button" :class="classes.button" @click="emit('close')">
+          {{ t.results.close }}
+        </button>
       </div>
     </header>
-    <p :class="classes.note">
-      Each run plays the same 5-second zoom and pan. Keep this tab in the foreground: hidden tabs
-      throttle frames.
-    </p>
+    <p :class="classes.note">{{ t.results.note }}</p>
     <div :class="classes.scroll">
       <table :class="classes.table">
         <thead>
           <tr>
-            <th scope="col">Configuration</th>
-            <th scope="col">FPS</th>
-            <th scope="col">Frame p95</th>
-            <th scope="col">Frames over 50 ms</th>
-            <th scope="col">First chart</th>
-            <th scope="col">Notes</th>
+            <th scope="col">{{ t.results.columns.config }}</th>
+            <th scope="col">{{ t.results.columns.fps }}</th>
+            <th scope="col">{{ t.results.columns.p95 }}</th>
+            <th scope="col">{{ t.results.columns.longFrames }}</th>
+            <th scope="col">{{ t.results.columns.firstChart }}</th>
+            <th scope="col">{{ t.results.columns.notes }}</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="result in results" :key="configLabel(result.config)">
-            <th scope="row">{{ configLabel(result.config) }}</th>
+          <tr v-for="result in results" :key="configLabel(result.config, t.results)">
+            <th scope="row">{{ configLabel(result.config, t.results) }}</th>
             <td>
               {{
                 result.measurement && !result.measurement.skipped
-                  ? formatInt(result.measurement.fps)
+                  ? fmt.int(result.measurement.fps)
                   : '–'
               }}
             </td>
-            <td>{{ result.measurement ? formatMs(result.measurement.p95) : '–' }}</td>
-            <td>{{ result.measurement ? formatInt(result.measurement.longFrames) : '–' }}</td>
-            <td>{{ result.firstChartMs === null ? '–' : formatMs(result.firstChartMs) }}</td>
-            <td>
-              {{
-                result.error ??
-                result.measurement?.invalid ??
-                result.measurement?.skipped ??
-                (result.measurement?.staleFrames
-                  ? `${result.measurement.staleFrames} stale frames`
-                  : '')
-              }}
-            </td>
+            <td>{{ result.measurement ? fmt.ms(result.measurement.p95) : '–' }}</td>
+            <td>{{ result.measurement ? fmt.int(result.measurement.longFrames) : '–' }}</td>
+            <td>{{ result.firstChartMs === null ? '–' : fmt.ms(result.firstChartMs) }}</td>
+            <td>{{ resultNote(result, t, fmt) }}</td>
           </tr>
         </tbody>
       </table>

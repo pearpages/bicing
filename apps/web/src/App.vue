@@ -11,7 +11,7 @@ import { TimeSeriesChart } from '@bicing/vue';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import classes from './App.module.scss';
 import { waitFrames, waitUntil } from './benchmark/frames';
-import type { BenchmarkConfig } from './benchmark/results';
+import { configLabel, type BenchmarkConfig } from './benchmark/results';
 import { fullMatrix, useBenchmark } from './benchmark/useBenchmark';
 import { usePerfMonitor } from './benchmark/usePerfMonitor';
 import OccupancyLegend from './components/OccupancyLegend.vue';
@@ -19,35 +19,33 @@ import PerfPanel from './components/PerfPanel.vue';
 import ResultsDialog from './components/ResultsDialog.vue';
 import SegmentedControl, { type Option } from './components/SegmentedControl.vue';
 import { DEFAULT_ROWS, SIZE_TIERS } from './data/sizes';
-import { useDataset } from './data/useDataset';
-import { formatInt } from './format';
+import { DatasetError, useDataset } from './data/useDataset';
 import { LANGUAGE_NAMES, LOCALES, type Locale } from './i18n/locales';
 import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
 import { occupancyScale, rampStops, useColorScheme } from './theme';
 
-const rendererOptions: readonly Option<RendererKind>[] = [
-  {
-    value: 'svg',
-    label: 'SVG',
-    title: 'One <path> per line, rebuilt every frame. Capped at 1M points.',
-  },
+const DECIMATIONS: readonly Decimation[] = ['none', 'minmax', 'lttb'];
+
+const { locale, t, fmt, setLocale } = useI18n();
+
+// Renderer names are product names, the same in every language; only the SVG hint is translated.
+const rendererOptions = computed<readonly Option<RendererKind>[]>(() => [
+  { value: 'svg', label: 'SVG', title: t.value.controls.svgTitle },
   { value: 'canvas', label: 'Canvas 2D' },
   { value: 'webgl', label: 'WebGL2' },
-];
-const decimationOptions: readonly Option<Decimation>[] = [
-  { value: 'none', label: 'Off' },
-  { value: 'minmax', label: 'Min/max per pixel' },
-  { value: 'lttb', label: 'LTTB' },
-];
-const sizeOptions: readonly Option<number>[] = SIZE_TIERS.map((tier) => ({
-  value: tier.rows,
-  label: tier.label,
-  muted: tier.stress === true,
-  ...(tier.stress
-    ? { title: 'Stress test: about 800 MB in the tab. It may fail on machines with less memory.' }
-    : {}),
-}));
+]);
+const decimationOptions = computed<readonly Option<Decimation>[]>(() =>
+  DECIMATIONS.map((value) => ({ value, label: t.value.controls.decimationOptions[value] })),
+);
+const sizeOptions = computed<readonly Option<number>[]>(() =>
+  SIZE_TIERS.map((tier) => ({
+    value: tier.rows,
+    label: tier.label,
+    muted: tier.stress === true,
+    ...(tier.stress ? { title: t.value.controls.stressTitle } : {}),
+  })),
+);
 
 const languageOptions: readonly Option<Locale>[] = LOCALES.map((value) => ({
   value,
@@ -55,7 +53,6 @@ const languageOptions: readonly Option<Locale>[] = LOCALES.map((value) => ({
   lang: value,
 }));
 
-const { locale, t, setLocale } = useI18n();
 const language = computed({ get: () => locale.value, set: setLocale });
 const chartText = computed(() => chartLocale(locale.value, t.value));
 
@@ -74,21 +71,38 @@ const summary = computed(() => {
   const data = dataset.current.value;
   if (!data) return null;
   const days = (data.series.xMax - data.series.xMin) / 1_440;
-  return `${formatInt(data.series.x.length)} readings from ${formatInt(data.stations.length)} stations over ${
-    days < 2 ? `${formatInt(days * 24)} hours` : `${formatInt(days)} days`
-  }. Synthetic data with the real schema.`;
+  const { app } = t.value;
+  const { int } = fmt.value;
+  return app.summary(
+    int(data.series.x.length),
+    int(data.stations.length),
+    days < 2 ? app.hours(int(days * 24)) : app.days(int(days)),
+  );
+});
+const loadError = computed(() => {
+  const failure = dataset.error.value;
+  return failure ? t.value.app.loadFailed(fmt.value.int(failure.rows), failure.cause) : null;
+});
+const progressText = computed(() => {
+  const progress = benchmark.progress.value;
+  if (!progress) return null;
+  const { int } = fmt.value;
+  return t.value.controls.progress(
+    int(progress.index),
+    int(progress.total),
+    configLabel(progress.config, t.value.results),
+  );
 });
 
 function describe(hit: Hit, format: ChartFormat): readonly string[] {
   const stations = dataset.current.value?.stations;
-  const name = stations?.names[hit.station] ?? `Station ${String(hit.station + 1)}`;
+  const text = t.value;
+  const name = stations?.names[hit.station] ?? text.chart.station(hit.station + 1);
   const capacity = stations?.capacity[hit.station];
   return [
     name,
     format.time(hit.t),
-    capacity
-      ? `${String(hit.y)} of ${String(capacity)} bikes available`
-      : `${String(hit.y)} bikes available`,
+    capacity ? text.tooltip.available(hit.y, capacity) : text.tooltip.availableNoCapacity(hit.y),
   ];
 }
 
@@ -106,7 +120,7 @@ async function configure(config: BenchmarkConfig): Promise<number | null> {
   decimation.value = config.decimation;
   rows.value = config.rows;
   await dataset.load(config.rows);
-  if (dataset.error.value) throw new Error(dataset.error.value);
+  if (dataset.error.value) throw new DatasetError(dataset.error.value);
   await waitUntil(() => dataset.timing.value?.firstChartMs != null, 60_000);
   await waitFrames(2);
   return dataset.timing.value?.firstChartMs ?? null;
@@ -153,29 +167,29 @@ onMounted(() => void dataset.load(rows.value));
   <div :class="classes.app">
     <header :class="classes.header">
       <div :class="classes.titleBlock">
-        <h1 :class="classes.title">Bicing Pulse</h1>
+        <h1 :class="classes.title">{{ t.meta.title }}</h1>
         <p :class="classes.summary">
-          {{ summary ?? 'Bikes available at every Barcelona Bicing station, over time.' }}
+          {{ summary ?? t.app.tagline }}
         </p>
       </div>
       <div :class="classes.controls">
         <SegmentedControl
           v-model="renderer"
-          legend="Renderer"
+          :legend="t.controls.renderer"
           name="renderer"
           :options="rendererOptions"
           :disabled="measuring"
         />
         <SegmentedControl
           v-model="rows"
-          legend="Readings"
+          :legend="t.controls.readings"
           name="rows"
           :options="sizeOptions"
           :disabled="dataset.loading.value !== null || measuring"
         />
         <SegmentedControl
           v-model="decimation"
-          legend="Downsampling"
+          :legend="t.controls.decimation"
           name="decimation"
           :options="decimationOptions"
           :disabled="measuring"
@@ -187,7 +201,7 @@ onMounted(() => void dataset.load(rows.value));
             :disabled="measuring"
             @click="measureCurrent"
           >
-            Measure this setup
+            {{ t.controls.measureThis }}
           </button>
           <button
             type="button"
@@ -195,7 +209,7 @@ onMounted(() => void dataset.load(rows.value));
             :disabled="measuring"
             @click="measureAll"
           >
-            Measure all
+            {{ t.controls.measureAll }}
           </button>
         </div>
         <SegmentedControl
@@ -205,14 +219,11 @@ onMounted(() => void dataset.load(rows.value));
           :options="languageOptions"
         />
       </div>
-      <p v-if="benchmark.progress.value" :class="classes.progress" role="status">
-        Measuring {{ benchmark.progress.value.index }} of {{ benchmark.progress.value.total }}:
-        {{ benchmark.progress.value.label }}
-      </p>
+      <p v-if="progressText" :class="classes.progress" role="status">{{ progressText }}</p>
     </header>
 
     <main :class="classes.main">
-      <section :class="classes.chartArea" aria-label="Bikes available per station">
+      <section :class="classes.chartArea" :aria-label="t.app.chartArea">
         <div :class="classes.chart">
           <TimeSeriesChart
             ref="chartView"
@@ -226,15 +237,15 @@ onMounted(() => void dataset.load(rows.value));
             @frame="onFrame"
           />
           <p v-if="dataset.loading.value !== null" :class="classes.status" role="status">
-            Generating {{ formatInt(dataset.loading.value) }} readings in a worker…
+            {{ t.app.generating(fmt.int(dataset.loading.value)) }}
           </p>
-          <p v-else-if="dataset.error.value" :class="[classes.status, classes.error]" role="alert">
-            {{ dataset.error.value }}
+          <p v-else-if="loadError" :class="[classes.status, classes.error]" role="alert">
+            {{ loadError }}
           </p>
         </div>
         <footer :class="classes.chartFooter">
           <OccupancyLegend :stops="stops" />
-          <span :class="classes.hint">Scroll to zoom, drag to pan, hover for a station.</span>
+          <span :class="classes.hint">{{ t.app.hint }}</span>
         </footer>
       </section>
 

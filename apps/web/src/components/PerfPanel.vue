@@ -3,7 +3,7 @@ import type { FrameReport } from '@bicing/charts';
 import { computed } from 'vue';
 import { FRAME_BUDGET_MS, type PerfSnapshot } from '../benchmark/perfMonitor';
 import type { LoadTiming } from '../data/useDataset';
-import { formatDuration, formatInt, formatMs } from '../format';
+import { useI18n } from '../i18n/useI18n';
 import FrameTrace from './FrameTrace.vue';
 import classes from './PerfPanel.module.scss';
 
@@ -14,83 +14,90 @@ const props = defineProps<{
 }>();
 
 const NO_FRAMES = new Float64Array(0);
+const { t, fmt } = useI18n();
 
 const overBudget = computed(() =>
   props.snapshot ? props.snapshot.p95 > FRAME_BUDGET_MS * 1.5 : false,
 );
 const memory = computed(() => {
   const s = props.snapshot;
-  if (s?.memoryMb == null) return 'Not available in this browser';
-  return `${formatInt(s.memoryMb)} MB ${s.memorySource === 'page' ? '(page and workers)' : '(JS heap)'}`;
+  const text = t.value.perf;
+  if (s?.memoryMb == null) return text.memoryUnavailable;
+  const mb = fmt.value.int(s.memoryMb);
+  return s.memorySource === 'page' ? text.memoryPage(mb) : text.memoryHeap(mb);
 });
 </script>
 
 <template>
-  <aside :class="classes.panel" aria-label="Performance">
+  <aside :class="classes.panel" :aria-label="t.perf.label">
     <p :class="[classes.fps, overBudget && classes.fpsBad]" aria-live="off">
-      <span :class="classes.fpsValue">{{ snapshot ? formatInt(snapshot.fps) : '–' }}</span>
-      <span :class="classes.fpsUnit">frames per second</span>
+      <span :class="classes.fpsValue">{{ snapshot ? fmt.int(snapshot.fps) : '–' }}</span>
+      <span :class="classes.fpsUnit">{{ t.perf.fpsUnit }}</span>
     </p>
 
     <FrameTrace :trace="snapshot?.trace ?? NO_FRAMES" />
 
     <dl :class="classes.list">
       <div :class="classes.row">
-        <dt>Frame time, median and 95th percentile</dt>
-        <dd>{{ snapshot ? `${formatMs(snapshot.p50)} and ${formatMs(snapshot.p95)}` : '–' }}</dd>
+        <dt>{{ t.perf.frameTime }}</dt>
+        <dd>
+          {{ snapshot ? t.perf.frameTimeValue(fmt.ms(snapshot.p50), fmt.ms(snapshot.p95)) : '–' }}
+        </dd>
       </div>
       <div :class="classes.row">
-        <dt>Frames over 50 ms</dt>
+        <dt>{{ t.perf.longFrames }}</dt>
         <dd>
-          {{ snapshot ? formatInt(snapshot.longFrames) : '–' }}
+          {{ snapshot ? fmt.int(snapshot.longFrames) : '–' }}
           <template v-if="snapshot && snapshot.longFrames > 0">
-            (longest {{ formatMs(snapshot.longestFrame) }})
+            {{ t.perf.longest(fmt.ms(snapshot.longestFrame)) }}
           </template>
         </dd>
       </div>
       <div :class="classes.row">
-        <dt>Memory</dt>
+        <dt>{{ t.perf.memory }}</dt>
         <dd>{{ memory }}</dd>
       </div>
     </dl>
 
-    <h2 :class="classes.heading">Last chart frame</h2>
+    <h2 :class="classes.heading">{{ t.perf.lastFrame }}</h2>
     <dl v-if="report" :class="classes.list">
       <div :class="classes.row">
-        <dt>Points sent to the renderer</dt>
-        <dd>{{ formatInt(report.uploadedPoints) }} of {{ formatInt(report.totalPoints) }}</dd>
+        <dt>{{ t.perf.pointsSent }}</dt>
+        <dd>
+          {{ t.perf.pointsSentValue(fmt.int(report.uploadedPoints), fmt.int(report.totalPoints)) }}
+        </dd>
       </div>
       <div :class="classes.row">
-        <dt>Points drawn after culling</dt>
-        <dd>{{ formatInt(report.drawnPoints) }} in {{ formatInt(report.drawCalls) }} draw calls</dd>
+        <dt>{{ t.perf.pointsDrawn }}</dt>
+        <dd>
+          {{ t.perf.pointsDrawnValue(fmt.int(report.drawnPoints), report.drawCalls) }}
+        </dd>
       </div>
       <div :class="classes.row">
-        <dt>Downsampling and upload</dt>
-        <dd>{{ formatMs(report.prepareMs) }}</dd>
+        <dt>{{ t.perf.prepare }}</dt>
+        <dd>{{ fmt.ms(report.prepareMs) }}</dd>
       </div>
       <div :class="classes.row">
-        <dt>Draw call CPU time</dt>
-        <dd>{{ formatMs(report.renderMs) }}</dd>
+        <dt>{{ t.perf.renderCpu }}</dt>
+        <dd>{{ fmt.ms(report.renderMs) }}</dd>
       </div>
     </dl>
-    <p v-else :class="classes.note">Waiting for the first frame.</p>
-    <p v-if="report?.stale" :class="classes.note">
-      Showing the previous downsampling while you zoom. It refines when you stop.
-    </p>
+    <p v-else :class="classes.note">{{ t.perf.waiting }}</p>
+    <p v-if="report?.stale" :class="classes.note">{{ t.perf.stale }}</p>
     <p v-if="report?.skipped" :class="[classes.note, classes.warning]">
-      {{ report.skipped }}. Pick a smaller dataset or turn on downsampling.
+      {{ report.skipped }}. {{ t.perf.skippedHint }}
     </p>
 
-    <h2 :class="classes.heading">Loading</h2>
+    <h2 :class="classes.heading">{{ t.perf.loading }}</h2>
     <dl v-if="timing" :class="classes.list">
       <div :class="classes.row">
-        <dt>Generated in the worker</dt>
-        <dd>{{ formatDuration(timing.workerMs) }}</dd>
+        <dt>{{ t.perf.generated }}</dt>
+        <dd>{{ fmt.duration(timing.workerMs) }}</dd>
       </div>
       <div :class="classes.row">
-        <dt>Time to first chart</dt>
+        <dt>{{ t.perf.firstChart }}</dt>
         <dd>
-          {{ timing.firstChartMs === null ? 'Drawing…' : formatDuration(timing.firstChartMs) }}
+          {{ timing.firstChartMs === null ? t.perf.drawing : fmt.duration(timing.firstChartMs) }}
         </dd>
       </div>
     </dl>

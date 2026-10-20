@@ -1,9 +1,16 @@
 import type { TimeSeriesChart } from '@bicing/charts';
 import { computed, ref, shallowRef } from 'vue';
+import { DatasetError } from '../data/useDataset';
+import { useI18n } from '../i18n/useI18n';
 import { waitFrames } from './frames';
 import { machineInfo } from './machine';
 import type { PerfMonitor } from './perfMonitor';
-import { configLabel, toMarkdown, type BenchmarkConfig, type BenchmarkResult } from './results';
+import {
+  toMarkdown,
+  type BenchmarkConfig,
+  type BenchmarkError,
+  type BenchmarkResult,
+} from './results';
 import { runScenario } from './runScenario';
 
 export interface BenchmarkDeps {
@@ -26,10 +33,14 @@ export function fullMatrix(): BenchmarkConfig[] {
 }
 
 export function useBenchmark(deps: BenchmarkDeps) {
-  const progress = ref<{ index: number; total: number; label: string } | null>(null);
+  const { t, fmt } = useI18n();
+  const progress = ref<{ index: number; total: number; config: BenchmarkConfig } | null>(null);
   const results = shallowRef<readonly BenchmarkResult[]>([]);
+  // Exported in the active language, like everything else on the page (P27).
   const markdown = computed(() =>
-    results.value.length ? toMarkdown(results.value, machineInfo(), new Date()) : '',
+    results.value.length
+      ? toMarkdown(results.value, machineInfo(), new Date(), t.value, fmt.value)
+      : '',
   );
 
   async function run(configs: readonly BenchmarkConfig[]): Promise<void> {
@@ -37,7 +48,7 @@ export function useBenchmark(deps: BenchmarkDeps) {
     const collected: BenchmarkResult[] = [];
     try {
       for (const [index, config] of configs.entries()) {
-        progress.value = { index: index + 1, total: configs.length, label: configLabel(config) };
+        progress.value = { index: index + 1, total: configs.length, config };
         collected.push(await measure(config));
         results.value = [...collected];
       }
@@ -47,13 +58,9 @@ export function useBenchmark(deps: BenchmarkDeps) {
   }
 
   async function measure(config: BenchmarkConfig): Promise<BenchmarkResult> {
+    // Background tabs pause requestAnimationFrame completely: the run would never finish.
+    if (document.visibilityState !== 'visible') return failed(config, { kind: 'backgroundTab' });
     try {
-      // Background tabs pause requestAnimationFrame completely: the run would never finish.
-      if (document.visibilityState !== 'visible') {
-        throw new Error(
-          'This tab is in the background, so the browser pauses frames. Bring it to the front and run again.',
-        );
-      }
       const firstChartMs = await deps.configure(config);
       // Let the upload and the first frames settle, so the run measures steady-state interaction.
       await waitFrames(30);
@@ -62,14 +69,18 @@ export function useBenchmark(deps: BenchmarkDeps) {
       const measurement = await runScenario(chart, deps.monitor);
       return { config, measurement, firstChartMs, error: null };
     } catch (cause) {
-      return {
+      return failed(
         config,
-        measurement: null,
-        firstChartMs: null,
-        error: cause instanceof Error ? cause.message : String(cause),
-      };
+        cause instanceof DatasetError
+          ? { kind: 'load', failure: cause.failure }
+          : { kind: 'other', message: cause instanceof Error ? cause.message : String(cause) },
+      );
     }
   }
 
   return { progress, results, markdown, run };
+}
+
+function failed(config: BenchmarkConfig, error: BenchmarkError): BenchmarkResult {
+  return { config, measurement: null, firstChartMs: null, error };
 }

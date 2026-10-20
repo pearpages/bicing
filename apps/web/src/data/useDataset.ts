@@ -12,10 +12,24 @@ export interface LoadTiming {
   readonly firstChartMs: number | null;
 }
 
+/** Kept as data, not a sentence, so the message follows the language when it's shown (P27). */
+export interface LoadError {
+  readonly rows: number;
+  /** The worker's own message: developer-facing, so it stays English (ADR 0011). */
+  readonly cause: string;
+}
+
+/** Thrown by the benchmark's configure step, so a result can say which load failed. */
+export class DatasetError extends Error {
+  constructor(readonly failure: LoadError) {
+    super(`Couldn't generate ${String(failure.rows)} readings: ${failure.cause}`);
+  }
+}
+
 export interface Dataset {
   readonly current: ShallowRef<GeneratedDataset | null>;
   readonly loading: Ref<number | null>;
-  readonly error: Ref<string | null>;
+  readonly error: Ref<LoadError | null>;
   readonly timing: ShallowRef<LoadTiming | null>;
   load(rows: number): Promise<void>;
   /** Call from the chart's first frame after new data, to close the time-to-first-chart measurement. */
@@ -31,7 +45,7 @@ export function useDataset(): Dataset {
   const client = createDataClient(createDataWorker());
   const current = shallowRef<GeneratedDataset | null>(null);
   const loading = ref<number | null>(null);
-  const error = ref<string | null>(null);
+  const error = shallowRef<LoadError | null>(null);
   const timing = shallowRef<LoadTiming | null>(null);
   let latest = 0;
   let pendingFirstFrame: { startedAt: number; timing: LoadTiming } | null = null;
@@ -72,9 +86,7 @@ export function useDataset(): Dataset {
       current.value = markRaw(dataset);
     } catch (cause) {
       if (request !== latest) return;
-      error.value = `Couldn't generate ${rows.toLocaleString('en')} readings: ${
-        cause instanceof Error ? cause.message : String(cause)
-      }. Try a smaller dataset.`;
+      error.value = { rows, cause: cause instanceof Error ? cause.message : String(cause) };
     } finally {
       if (request === latest) loading.value = null;
     }
