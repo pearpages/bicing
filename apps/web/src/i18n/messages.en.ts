@@ -78,6 +78,10 @@ export const en: Messages = {
     at: (moment) => `Occupancy: ${moment}`,
     noData: 'No data at this moment',
     noDataLegend: 'No data',
+    scrubber: 'Map moment',
+    play: 'Play',
+    pause: 'Pause',
+    follow: 'Follow the view',
   },
   filters: {
     title: 'Filters',

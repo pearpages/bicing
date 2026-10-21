@@ -226,7 +226,14 @@ onMounted(() => {
           :color-scale="colorScale"
           :format-time="formatTime"
           :dimmed-stations="filters.dimmedStations.value"
+          :extent="mapMoment.extent.value"
+          :playing="mapMoment.playing.value"
+          :pinned="mapMoment.pinned.value"
           @select="filters.toggleStation"
+          @scrub="mapMoment.scrub"
+          @play="mapMoment.play"
+          @pause="mapMoment.pause"
+          @follow="mapMoment.follow"
         />
         <FilterPanel
           v-if="dataset.current.value"

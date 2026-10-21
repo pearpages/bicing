@@ -40,7 +40,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 - [x] **T3.2** data: run the T3.1 engine in the worker. Derive each row's hour of day (Barcelona time, through a DST offset table) and occupancy bin when data loads, keep them with the station column, and add `filter` messages to the protocol, answered with the histograms and per-station counts (one update in flight). _Done when:_ tests drive it through the worker handler, and a brush update on a real month (4.5M rows) takes under 16 ms in the worker.
 - [x] **T3.3** charts: an x brush on the time series (`d3-brush`), and a `HistogramChart` controller (D3 scales and axis, Canvas bars, its own brush) for hour of day and occupancy. _Done when:_ jsdom tests drive both brushes and the bars follow new counts.
 - [x] **T3.4** web: the linked layout. The time series, two histograms and the map; brushing any of them filters the rest, the chart and map dim what's filtered out, and there's a "clear filters" action, in both languages. _Done when:_ brushing works in the browser on a real month with no long task over 50 ms, measured.
-- [ ] **T3.5** web: a map time scrubber. A slider (and play) for the map's moment, alongside the crosshair it follows today (T2.7). _Done when:_ scrubbing a month redraws the map at 60 fps.
+- [x] **T3.5** web: a map time scrubber. A slider (and play) for the map's moment, alongside the crosshair it follows today (T2.7). _Done when:_ scrubbing a month redraws the map at 60 fps.
 - [ ] **T3.6** Playwright brushing tests against `vite preview` on synthetic data (CI has no real data), run in CI. _Done when:_ CI runs them green.
 - [ ] **T3.7** Final benchmarks: brush latency (worker update and main-thread frame) on 1M and 10M synthetic readings and a real month, recorded in the README with the method (P5). _Done when:_ the README table is in.
 
@@ -88,6 +88,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 
 ## Done
 
+- [x] 2026-10-21: T3.5 done — a time scrubber under the map (5-minute steps, play over ~30 s by wall clock, "follow the view" to unpin), in both languages. On September 2026 (`vite preview`): scrubbing the whole month back and forth one step per frame, 723 frames at 60 fps (p95 17.3 ms, worst 18.6 ms, 0 long tasks); play also 60 fps (M4 Pro, Chrome 155).
 - [x] 2026-10-21: T3.4 done — linked views: the time series, an hour-of-day and an occupancy histogram, and the map (click to pick stations) filter each other through the worker's crossfilter, with filtered-out stations dimmed and a "clear filters" action in both languages. Brushing September 2026 (4.4M readings) on `vite preview`: 1,080 brushed frames, 0 long tasks, frame p95 17.7 ms, worst 18.5 ms (M4 Pro, Chrome 155, dpr 2). Found D15.
 - [x] 2026-10-21: T3.3 done — a time brush on the time series (shift + drag, kept in minutes through zoom) and `HistogramChart` (D3 axes, Canvas bars, a bin-snapping brush), both driven by real mouse events in jsdom tests.
 - [x] 2026-10-21: T3.2 done — the crossfilter runs in the worker: filters for the latest raw dataset (by generation), one update in flight in the client, Barcelona hours checked against Intl; on a real month a brush update takes 11.1 / 3.3 / 0.57 ms p99 (occupancy / hour / time), a load 28 ms and the first filter 90 ms.

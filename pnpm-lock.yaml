@@ -245,6 +245,9 @@ importers:
       '@vitejs/plugin-vue':
         specifier: 6.0.9
         version: 6.0.9(vite@8.3.0(@types/node@24.13.6)(esbuild@0.28.2)(sass@1.104.1)(tsx@4.23.15))(vue@3.5.43(typescript@6.0.3))
+      fast-check:
+        specifier: 4.10.2
+        version: 4.10.2
       sass:
         specifier: 1.104.1
         version: 1.104.1

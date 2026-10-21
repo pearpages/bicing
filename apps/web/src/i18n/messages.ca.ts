@@ -87,6 +87,10 @@ export const ca = {
     at: (moment: string) => `Ocupació: ${moment}`,
     noData: 'Sense dades en aquest moment',
     noDataLegend: 'Sense dades',
+    scrubber: 'Moment del mapa',
+    play: 'Reprodueix',
+    pause: 'Pausa',
+    follow: 'Segueix la vista',
   },
   filters: {
     title: 'Filtres',
