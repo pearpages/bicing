@@ -1,4 +1,5 @@
 import { resizeCanvas } from '../dpr';
+import { DIM_ALPHA } from '../types';
 import { parseColor, rampBytes, RAMP_SIZE } from '../webgl/colorRamp';
 import { attribLocation, linkProgram, uniformLocation } from '../webgl/gl-utils';
 import { encodeValues } from './encode';
@@ -12,6 +13,8 @@ export interface PointRenderer {
   /** One value per point in [0, 1], or NaN for no data. Uploaded when the moment changes. */
   setValues(values: ArrayLike<number>): void;
   setColorScale(interpolate: (t: number) => string): void;
+  /** One flag per point, 1 = dimmed (filtered out, ADR 0015); null dims nothing. */
+  setDimmed(points: Uint8Array | null): void;
   setNoDataColor(css: string): void;
   resize(width: number, height: number, dpr: number): void;
   render(): void;
@@ -24,13 +27,16 @@ export interface PointRendererOptions {
   readonly size?: number;
 }
 
+/** A station is one small dot, not a line among hundreds: dimmed, it keeps twice the lines' share or it vanishes. */
+const POINT_DIM_ALPHA = DIM_ALPHA * 2;
+
 interface Gpu {
   readonly program: WebGLProgram;
   readonly vao: WebGLVertexArrayObject;
   readonly positions: WebGLBuffer;
   readonly values: WebGLBuffer;
   readonly ramp: WebGLTexture;
-  readonly u: Record<'viewport' | 'size' | 'ramp' | 'noData', WebGLUniformLocation>;
+  readonly u: Record<'viewport' | 'size' | 'ramp' | 'noData' | 'dim', WebGLUniformLocation>;
 }
 
 /**
@@ -46,6 +52,8 @@ export class WebGLPointRenderer implements PointRenderer {
   private count = 0;
   private positions = new Float32Array(0);
   private values = new Float32Array(0);
+  private raw: ArrayLike<number> = new Float32Array(0);
+  private dimmed: Uint8Array | null = null;
   private ramp = rampBytes(() => '#4c78a8');
   private noData: [number, number, number, number] = [0.5, 0.5, 0.5, 1];
   private cssWidth = 1;
@@ -75,8 +83,14 @@ export class WebGLPointRenderer implements PointRenderer {
   }
 
   setValues(values: ArrayLike<number>): void {
-    this.values = encodeValues(values);
+    this.raw = values;
+    this.values = encodeValues(values, this.dimmed);
     this.upload();
+  }
+
+  setDimmed(points: Uint8Array | null): void {
+    this.dimmed = points;
+    this.setValues(this.raw);
   }
 
   setColorScale(interpolate: (t: number) => string): void {
@@ -107,6 +121,7 @@ export class WebGLPointRenderer implements PointRenderer {
     gl.uniform2f(gpu.u.viewport, this.cssWidth, this.cssHeight);
     gl.uniform1f(gpu.u.size, this.size * this.dpr);
     gl.uniform4f(gpu.u.noData, ...this.noData);
+    gl.uniform1f(gpu.u.dim, POINT_DIM_ALPHA);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, gpu.ramp);
     gl.uniform1i(gpu.u.ramp, 0);
@@ -156,6 +171,7 @@ export class WebGLPointRenderer implements PointRenderer {
         size: uniformLocation(gl, program, 'u_size'),
         ramp: uniformLocation(gl, program, 'u_ramp'),
         noData: uniformLocation(gl, program, 'u_noData'),
+        dim: uniformLocation(gl, program, 'u_dim'),
       },
     };
   }

@@ -9,6 +9,7 @@ import { TimeSeriesChart, type FrameReport } from './TimeSeriesChart';
 function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_SAFE_INTEGER) {
   const uploads: LineSeriesData[] = [];
   const views: Viewport[] = [];
+  const dims: (number[] | null)[] = [];
   let destroyed = false;
   const renderer: Renderer = {
     kind,
@@ -16,7 +17,7 @@ function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_
     maxPoints,
     setData: (data) => uploads.push(data),
     setColorScale: () => undefined,
-    setDimmed: () => undefined,
+    setDimmed: (lines) => dims.push(lines ? Array.from(lines) : null),
     resize: () => undefined,
     render: (view): RenderStats => {
       views.push(view);
@@ -27,7 +28,7 @@ function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_
       destroyed = true;
     },
   };
-  return { renderer, uploads, views, isDestroyed: () => destroyed };
+  return { renderer, uploads, views, dims, isDestroyed: () => destroyed };
 }
 
 /** Frames only happen when the test says so. */
@@ -122,6 +123,26 @@ describe('TimeSeriesChart', () => {
       stale: false,
       skipped: null,
     });
+  });
+
+  test('dimmed stations become per-line flags, without uploading the data again', () => {
+    const { chart, fake, frame } = setup();
+    const series = dataset(200);
+    chart.setData(series);
+    frame();
+    const stations = new Uint8Array(10);
+    stations[3] = 1;
+    chart.setDimmedStations(stations);
+    frame();
+    expect(fake.uploads).toHaveLength(1);
+    const flags = fake.dims.at(-1) ?? [];
+    expect(flags).toHaveLength(series.lineStation.length);
+    for (const [k, flag] of flags.entries()) {
+      expect(flag).toBe(series.lineStation[k] === 3 ? 1 : 0);
+    }
+    chart.setDimmedStations(null);
+    frame();
+    expect(fake.dims.at(-1)).toBeNull();
   });
 
   test('draws axes with ticks', () => {

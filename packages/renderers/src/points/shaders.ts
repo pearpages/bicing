@@ -11,16 +11,22 @@ void main() {
   v_value = a_value;
 }`;
 
-/** Round points with a soft edge; -1 means "no data" and takes its own color, not the ramp's. */
+/**
+ * Round points with a soft edge; -1 means "no data" and takes its own color, not the ramp's.
+ * Values above 2 are dimmed (encode.ts adds DIM_OFFSET = 4) and drawn at u_dim of their alpha.
+ */
 export const POINT_FRAGMENT_SHADER = `#version 300 es
 precision mediump float;
 in float v_value;
 uniform sampler2D u_ramp;
 uniform vec4 u_noData;
+uniform float u_dim;
 out vec4 color;
 void main() {
   float r = length(gl_PointCoord - 0.5);
   if (r > 0.5) discard;
-  vec4 c = v_value < 0.0 ? u_noData : texture(u_ramp, vec2(v_value, 0.5));
-  color = vec4(c.rgb, c.a * smoothstep(0.5, 0.4, r));
+  bool dimmed = v_value > 2.0;
+  float v = dimmed ? v_value - 4.0 : v_value;
+  vec4 c = v < 0.0 ? u_noData : texture(u_ramp, vec2(v, 0.5));
+  color = vec4(c.rgb, c.a * smoothstep(0.5, 0.4, r) * (dimmed ? u_dim : 1.0));
 }`;

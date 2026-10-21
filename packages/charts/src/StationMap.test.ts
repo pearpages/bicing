@@ -13,6 +13,7 @@ function fakeRenderer() {
     setValues: (values) => calls.values.push(Array.from(values)),
     setColorScale: () => undefined,
     setNoDataColor: () => undefined,
+    setDimmed: () => undefined,
     resize: () => undefined,
     render: () => {
       calls.renders++;

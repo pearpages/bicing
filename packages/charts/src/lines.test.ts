@@ -1,6 +1,6 @@
 import { allocateObservations, buildStationSeries, Status, type StationSeries } from '@bicing/core';
 import { describe, expect, test } from 'vitest';
-import { decimatedLines, fullLines, visiblePointCount } from './lines';
+import { decimatedLines, fullLines, lineFlags, visiblePointCount } from './lines';
 
 /** Builds series from [station, t, bikes] rows (sorted by t, then station), with capacity 10. */
 function seriesOf(rows: [number, number, number][], stations: number): StationSeries {
@@ -44,6 +44,7 @@ describe('fullLines', () => {
     expect(Array.from(lines.lineStarts)).toEqual([0, 3, 5, 9]);
     expect(Array.from(lines.lineValue)).toEqual([0.3, 0.3, 0.75].map(Math.fround));
     expect(lines.x).toBe(series.x);
+    expect(Array.from(lines.lineStation ?? [])).toEqual([0, 0, 1]);
   });
 
   test('an empty series has no lines', () => {
@@ -64,6 +65,7 @@ describe('decimatedLines', () => {
     const lines = decimatedLines(series, 'minmax', 0, 106, 1_000);
     expect(Array.from(lines.x)).toEqual(Array.from(series.x));
     expect(Array.from(lines.lineStarts)).toEqual([0, 3, 5, 9]);
+    expect(Array.from(lines.lineStation ?? [])).toEqual([0, 0, 1]);
   });
 
   test('packs gathered values and keeps the color value of each line', () => {
@@ -78,5 +80,21 @@ describe('decimatedLines', () => {
     const lines = decimatedLines(series, 'minmax', 200, 300, 100);
     // Only station 0's last point (105) is a left neighbor of the view.
     expect(lines.lineValue.length).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('lineFlags', () => {
+  test('every line of a filtered-out station is flagged, whatever the decimation', () => {
+    const dimmed = Uint8Array.of(1, 0);
+    expect(Array.from(lineFlags(fullLines(series), dimmed))).toEqual([1, 1, 0]);
+    expect(Array.from(lineFlags(decimatedLines(series, 'lttb', 0, 106, 2), dimmed))).toEqual([
+      1, 1, 0,
+    ]);
+  });
+
+  test('lines without stations are never dimmed', () => {
+    const { x, y, lineStarts, lineValue } = fullLines(series);
+    const anonymous = { x, y, lineStarts, lineValue };
+    expect(Array.from(lineFlags(anonymous, Uint8Array.of(1, 1)))).toEqual([0, 0, 0]);
   });
 });

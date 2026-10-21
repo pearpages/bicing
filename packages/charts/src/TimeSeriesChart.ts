@@ -21,7 +21,7 @@ import { TimeBrush, type TimeRange } from './timeBrush';
 import { placeTooltip } from './tooltip';
 import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
-import { decimatedLines, fullLines, visiblePointCount, type Decimation } from './lines';
+import { decimatedLines, fullLines, lineFlags, visiblePointCount, type Decimation } from './lines';
 import { FrameScheduler, type FrameClock } from './scheduler';
 
 type Layer = 'data' | 'axes' | 'overlay';
@@ -94,6 +94,9 @@ export class TimeSeriesChart {
   private readonly viewListeners = new Set<Listener<Domain>>();
   private readonly hoverListeners = new Set<Listener<Hit | null>>();
   private readonly brushListeners = new Set<Listener<TimeRange | null>>();
+  private dimmedStations: Uint8Array | null = null;
+  /** The lines the renderer's dimmed flags were computed for; null forces a recompute. */
+  private dimmedFor: LineSeriesData | null = null;
   private readonly brush: TimeBrush;
   private readonly describe: ((hit: Hit, format: ChartFormat) => readonly string[]) | null;
   private pointerAt: readonly [number, number] | null = null;
@@ -346,6 +349,16 @@ export class TimeSeriesChart {
     this.brush.setEnabled(enabled);
   }
 
+  /**
+   * One flag per station, 1 = filtered out (ADR 0015): its lines draw faint under the rest. Only
+   * per-line flags change; the data stays uploaded (P6).
+   */
+  setDimmedStations(dimmed: Uint8Array | null): void {
+    this.dimmedStations = dimmed;
+    this.dimmedFor = null;
+    this.scheduler.invalidate('data');
+  }
+
   /** Sets the brush without reporting it (e.g. "clear filters"). */
   setBrush(range: TimeRange | null): void {
     this.brush.set(range);
@@ -473,6 +486,10 @@ export class TimeSeriesChart {
         this.renderer.setData(data);
       }
       this.uploaded = data;
+    }
+    if (this.dimmedFor !== data) {
+      this.renderer.setDimmed(this.dimmedStations ? lineFlags(data, this.dimmedStations) : null);
+      this.dimmedFor = data;
     }
     this.uploadedKey = key;
     const prepared = performance.now();

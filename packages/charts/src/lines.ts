@@ -20,7 +20,29 @@ export function fullLines(series: StationSeries): LineSeriesData {
   for (let k = 0; k < lineValue.length; k++) {
     lineValue[k] = series.meanFill[series.lineStation[k] as number] as number;
   }
-  return { x: series.x, y: series.y, lineStarts: series.lineStarts, lineValue };
+  return {
+    x: series.x,
+    y: series.y,
+    lineStarts: series.lineStarts,
+    lineValue,
+    lineStation: series.lineStation,
+  };
+}
+
+/**
+ * Per-line flags for the renderer from per-station ones (1 = filtered out, ADR 0015). O(lines):
+ * cheap enough to redo whenever the filter or the drawn lines change.
+ */
+export function lineFlags(
+  data: LineSeriesData,
+  stations: Uint8Array,
+  out = new Uint8Array(data.lineValue.length),
+): Uint8Array {
+  const owners = data.lineStation;
+  for (let k = 0; k < out.length; k++) {
+    out[k] = owners ? (stations[owners[k] as number] ?? 0) : 0;
+  }
+  return out;
 }
 
 /** Station s's rows that are visible in [x0, x1], plus one neighbor on each side so lines reach the edges. */
@@ -84,6 +106,7 @@ export function decimatedLines(
   const y = new Uint8Array(points);
   const lineStarts = new Uint32Array(lines + 1);
   const lineValue = new Float32Array(lines);
+  const lineStation = new Uint16Array(lines);
   let p = 0;
   let l = 0;
   for (const { station, result } of parts) {
@@ -91,6 +114,7 @@ export function decimatedLines(
     for (const seg of segs) {
       lineStarts[l] = p + seg;
       lineValue[l] = series.meanFill[station] as number;
+      lineStation[l] = station;
       l++;
     }
     for (const index of indices) {
@@ -100,5 +124,5 @@ export function decimatedLines(
     }
   }
   lineStarts[lines] = points;
-  return { x, y, lineStarts, lineValue };
+  return { x, y, lineStarts, lineValue, lineStation };
 }

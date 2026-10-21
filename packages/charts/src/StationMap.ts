@@ -103,6 +103,12 @@ export class StationMap {
     this.scheduler.invalidate('points', 'hover');
   }
 
+  /** One flag per station, 1 = filtered out (ADR 0015): drawn faint, still hoverable. */
+  setDimmedStations(dimmed: Uint8Array | null): void {
+    this.renderer.setDimmed(dimmed);
+    this.scheduler.invalidate('points');
+  }
+
   /** The app calls this on a theme change too, which is when the no-data color may change. */
   setColorScale(interpolate: (t: number) => string): void {
     this.renderer.setColorScale(interpolate);
