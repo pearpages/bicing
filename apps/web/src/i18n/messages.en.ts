@@ -73,6 +73,12 @@ export const en: Messages = {
     capped: (renderer, max, requested) =>
       `${renderer} is capped at ${max} points (${requested} requested)`,
   },
+  map: {
+    title: 'Station map',
+    at: (moment) => `Occupancy: ${moment}`,
+    noData: 'No data at this moment',
+    noDataLegend: 'No data',
+  },
   legend: {
     title: 'Line color: average fill of the station',
     emptier: 'Emptier',

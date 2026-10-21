@@ -1,0 +1,36 @@
+.panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  gap: 6px;
+  padding: 12px 16px 8px;
+  border-bottom: 1px solid var(--color-rule);
+}
+
+.caption {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+// Barcelona's stations fit a roughly square box; the map keeps it square at any panel width.
+.map {
+  aspect-ratio: 1;
+  min-height: 0;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+// Same color as the map's no-data points (--bp-map-no-data in @bicing/charts/styles.css).
+.noData {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #8a96a3;
+}

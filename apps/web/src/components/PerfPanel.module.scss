@@ -4,9 +4,6 @@
   gap: 14px;
   min-width: 0;
   padding: 16px;
-  border-left: 1px solid var(--color-rule);
-  background: var(--color-surface);
-  overflow-y: auto;
 }
 
 .fps {
@@ -69,12 +66,4 @@
 
 .warning {
   color: var(--color-over-budget);
-}
-
-// Stacks below the chart on narrow screens (see App.module.scss), so the rule moves to the top edge.
-@media (max-width: 860px) {
-  .panel {
-    border-top: 1px solid var(--color-rule);
-    border-left: 0;
-  }
 }

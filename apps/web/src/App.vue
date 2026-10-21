@@ -5,25 +5,27 @@ import type {
   FrameReport,
   RendererKind,
 } from '@bicing/charts';
+import { chartFormat } from '@bicing/charts';
 import { TimeSeriesChart } from '@bicing/vue';
 import { computed, onMounted, ref, shallowRef, watch } from 'vue';
 import classes from './App.module.scss';
-import { waitFrames, waitUntil } from './benchmark/frames';
-import { configLabel, type BenchmarkConfig } from './benchmark/results';
-import { fullMatrix, useBenchmark } from './benchmark/useBenchmark';
+import { configLabel } from './benchmark/results';
+import { useBenchmarkRun } from './benchmark/useBenchmarkRun';
 import { usePerfMonitor } from './benchmark/usePerfMonitor';
 import OccupancyLegend from './components/OccupancyLegend.vue';
 import PerfPanel from './components/PerfPanel.vue';
+import StationMapPanel from './components/StationMapPanel.vue';
 import ResultsDialog from './components/ResultsDialog.vue';
 import MonthSelect from './components/MonthSelect.vue';
 import SegmentedControl from './components/SegmentedControl.vue';
 import { useControlOptions } from './controls/useControlOptions';
-import { DatasetError, useDataset } from './data/useDataset';
+import { useDataset } from './data/useDataset';
 import { useDatasetText } from './data/useDatasetText';
 import { useDataSource } from './data/useDataSource';
 import { useDescribeHit } from './data/describeHit';
 import { monthRange } from './data/monthRange';
 import { useGaps } from './data/useGaps';
+import { useMapMoment } from './data/useMapMoment';
 import { useHistoryView } from './data/useHistoryView';
 import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
@@ -33,6 +35,7 @@ const { locale, t, fmt, setLocale } = useI18n();
 const options = useControlOptions();
 const language = computed({ get: () => locale.value, set: setLocale });
 const chartText = computed(() => chartLocale(locale.value, t.value));
+const formatTime = computed(() => chartFormat(chartText.value).time);
 
 const renderer = ref<RendererKind>('webgl');
 const decimation = ref<Decimation>('none');
@@ -42,6 +45,7 @@ const dataset = useDataset();
 const historyView = useHistoryView(dataset, history);
 const { gaps } = useGaps(sourceKind);
 const describe = useDescribeHit(dataset);
+const mapMoment = useMapMoment(dataset);
 // A month spans its calendar month, so a late start or an early end shows as a shaded gap (T2.6);
 // the whole history spans its coverage at every level (T2.5b).
 const chartExtent = computed(() => {
@@ -67,6 +71,11 @@ const progressText = computed(() => {
   );
 });
 
+function onView(view: readonly [number, number]): void {
+  historyView.onView(view);
+  mapMoment.onChartView(view);
+}
+
 function onFrame(report: FrameReport): void {
   perf.recordFrame(report);
   if (report.uploadedPoints > 0 || report.skipped) dataset.markFirstFrame();
@@ -75,48 +84,15 @@ function onFrame(report: FrameReport): void {
 // Typed structurally: the component exposes its controller as `chart` (see @bicing/vue).
 const chartView = shallowRef<{ chart: ChartController | null } | null>(null);
 
-/** Applies a configuration and waits for its first drawn frame; used by the scripted benchmark. */
-async function configure(config: BenchmarkConfig): Promise<number | null> {
-  renderer.value = config.renderer;
-  decimation.value = config.decimation;
-  // The benchmark matrix is synthetic sizes; real data gets its own benchmarks in T2.8.
-  sourceKind.value = 'synthetic';
-  rows.value = config.rows;
-  await dataset.load({ kind: 'synthetic', rows: config.rows });
-  if (dataset.error.value) throw new DatasetError(dataset.error.value);
-  await waitUntil(() => dataset.timing.value?.firstChartMs != null, 60_000);
-  await waitFrames(2);
-  return dataset.timing.value?.firstChartMs ?? null;
-}
-
-const benchmark = useBenchmark({
-  configure,
-  chart: () => chartView.value?.chart ?? null,
+const { benchmark, resultsOpen, measuring, measureCurrent, measureAll } = useBenchmarkRun({
+  renderer,
+  decimation,
+  sourceKind,
+  rows,
+  dataset,
   monitor: perf.monitor,
+  chart: () => chartView.value?.chart ?? null,
 });
-const resultsOpen = ref(false);
-const measuring = computed(() => benchmark.progress.value !== null);
-
-async function measure(configs: readonly BenchmarkConfig[]): Promise<void> {
-  resultsOpen.value = true;
-  await benchmark.run(configs);
-}
-
-function measureCurrent(): void {
-  void measure([{ renderer: renderer.value, rows: rows.value, decimation: decimation.value }]);
-}
-
-function measureAll(): void {
-  void measure(fullMatrix());
-}
-
-if (import.meta.env.DEV || new URLSearchParams(location.search).has('automation')) {
-  // Lets browser automation drive the same runner a person uses (tasks.md T1.15). Production
-  // builds opt in with ?automation, so benchmarks can run on minified code.
-  Object.assign(window, {
-    bicingBenchmark: { run: measure, fullMatrix, markdown: () => benchmark.markdown.value },
-  });
-}
 
 watch(source, (next) => {
   if (next) void dataset.load(next);
@@ -219,7 +195,8 @@ onMounted(() => {
             :keep-view="dataset.source.value?.kind === 'history'"
             :gaps="gaps"
             @frame="onFrame"
-            @view="historyView.onView"
+            @view="onView"
+            @hover="mapMoment.onChartHover"
           />
           <p v-if="dataset.loading.value !== null" :class="classes.status" role="status">
             {{ text.loading.value }}
@@ -234,11 +211,20 @@ onMounted(() => {
         </footer>
       </section>
 
-      <PerfPanel
-        :snapshot="perf.snapshot.value"
-        :report="perf.report.value"
-        :timing="dataset.timing.value"
-      />
+      <div :class="classes.sidebar">
+        <StationMapPanel
+          :series="series"
+          :stations="dataset.current.value?.stations ?? null"
+          :moment="mapMoment.moment.value"
+          :color-scale="colorScale"
+          :format-time="formatTime"
+        />
+        <PerfPanel
+          :snapshot="perf.snapshot.value"
+          :report="perf.report.value"
+          :timing="dataset.timing.value"
+        />
+      </div>
     </main>
 
     <ResultsDialog

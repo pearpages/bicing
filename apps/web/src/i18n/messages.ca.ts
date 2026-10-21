@@ -82,6 +82,12 @@ export const ca = {
     capped: (renderer: string, max: string, requested: string) =>
       `${renderer}: com a màxim ${max} punts (se n'han demanat ${requested})`,
   },
+  map: {
+    title: 'Mapa de les estacions',
+    at: (moment: string) => `Ocupació: ${moment}`,
+    noData: 'Sense dades en aquest moment',
+    noDataLegend: 'Sense dades',
+  },
   legend: {
     title: "Color de la línia: ocupació mitjana de l'estació",
     emptier: 'Més buida',

@@ -85,6 +85,15 @@
   min-height: 0;
 }
 
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-rule);
+  background: var(--color-surface);
+}
+
 .chartArea {
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto;
@@ -177,6 +186,12 @@
 
   .main {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  // The sidebar stacks below the chart, so its rule moves to the top edge.
+  .sidebar {
+    border-top: 1px solid var(--color-rule);
+    border-left: 0;
   }
 
   .chart {
