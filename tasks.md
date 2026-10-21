@@ -42,7 +42,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 - [x] **T3.4** web: the linked layout. The time series, two histograms and the map; brushing any of them filters the rest, the chart and map dim what's filtered out, and there's a "clear filters" action, in both languages. _Done when:_ brushing works in the browser on a real month with no long task over 50 ms, measured.
 - [x] **T3.5** web: a map time scrubber. A slider (and play) for the map's moment, alongside the crosshair it follows today (T2.7). _Done when:_ scrubbing a month redraws the map at 60 fps.
 - [x] **T3.6** Playwright brushing tests against `vite preview` on synthetic data (CI has no real data), run in CI. _Done when:_ CI runs them green.
-- [ ] **T3.7** Final benchmarks: brush latency (worker update and main-thread frame) on 1M and 10M synthetic readings and a real month, recorded in the README with the method (P5). _Done when:_ the README table is in.
+- [x] **T3.7** Final benchmarks: brush latency (worker update and main-thread frame) on 1M and 10M synthetic readings and a real month, recorded in the README with the method (P5). _Done when:_ the README table is in.
 
 ### Discovered
 
@@ -88,6 +88,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 
 ## Done
 
+- [x] 2026-10-21: T3.7 done, Phase 3 complete — brush latency in the README (README > Linked views): round trip p50 under 12 ms everywhere, worst p95 22 ms (occupancy on 10M), no long task in 3,240 brushed frames (worst 18.2 ms), on 1M and 10M synthetic and September 2026; `apps/web/scripts/bench-brush.mjs` reproduces it from the app's `bicing:filter` User Timing measures.
 - [x] 2026-10-21: T3.6 done — five Playwright browser tests (ADR 0016: Chromium, software WebGL2, synthetic 100k on `vite preview`) cover the brushes, map picks, "clear filters", Catalan strings and the scrubber; green in CI's new `e2e` job on the first run (17 s of tests, 71 s for the job), and they fail on T3.4's blank-chart bug.
 - [x] 2026-10-21: T3.5 done — a time scrubber under the map (5-minute steps, play over ~30 s by wall clock, "follow the view" to unpin), in both languages. On September 2026 (`vite preview`): scrubbing the whole month back and forth one step per frame, 723 frames at 60 fps (p95 17.3 ms, worst 18.6 ms, 0 long tasks); play also 60 fps (M4 Pro, Chrome 155).
 - [x] 2026-10-21: T3.4 done — linked views: the time series, an hour-of-day and an occupancy histogram, and the map (click to pick stations) filter each other through the worker's crossfilter, with filtered-out stations dimmed and a "clear filters" action in both languages. Brushing September 2026 (4.4M readings) on `vite preview`: 1,080 brushed frames, 0 long tasks, frame p95 17.7 ms, worst 18.5 ms (M4 Pro, Chrome 155, dpr 2). Found D15.

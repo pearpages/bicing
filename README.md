@@ -155,6 +155,49 @@ Memory is shown live in the app, but it's left out of this table: `measureUserAg
 its samples lagged behind configuration changes during the automated run (see the Discovered list in
 [tasks.md](tasks.md)).
 
+### Linked views (Phase 3)
+
+How long a brush takes to update the other views, and whether brushing ever blocks the page. Each brush is dragged
+back and forth across its whole width, one step per animation frame, 3 times (360 frames per brush), with real DOM
+mouse events on the brush. The other filters are cleared between brushes.
+
+- **Worker:** the time the crossfilter takes in the worker for one update (ADR 0015).
+- **Round trip:** from the brush move to the new counts on the page, including the worker, the copy back and any
+  wait behind the previous update. The page keeps one update in flight, so a fast drag never queues.
+- **Frame:** the main thread's frame time while brushing; 16.7 ms is 60 fps. Long tasks are tasks over 50 ms.
+- A histogram updates only when its brush crosses into another bin, so it sends fewer updates than the time brush.
+
+**Machine:** Apple M4 Pro, macOS, headless Chrome 155 on WebGL2 (ANGLE Metal), 1400×900 CSS px, devicePixelRatio 1.
+Measured 2026-10-21 on `vite preview`. Reproduce it with
+[`apps/web/scripts/bench-brush.mjs`](apps/web/scripts/bench-brush.mjs), which reads the `bicing:filter` User Timing
+measures the app records for every update.
+
+| Data                 | Readings filtered | Brush       | Updates | Worker p50 / p95 (ms) | Round trip p50 / p95 (ms) | Frame p95 / max (ms) | Long tasks |
+| -------------------- | ----------------: | ----------- | ------: | --------------------: | ------------------------: | -------------------: | ---------: |
+| 1M synthetic         |           998,624 | Occupancy   |     103 |             2.3 / 7.4 |                 2.6 / 7.8 |          17.4 / 17.8 |          0 |
+| 1M synthetic         |           998,624 | Hour of day |     127 |             2.4 / 4.2 |                 2.9 / 4.7 |          17.5 / 18.2 |          0 |
+| 1M synthetic         |           998,624 | Time        |     330 |             0.5 / 1.1 |                 2.4 / 3.4 |          17.3 / 17.6 |          0 |
+| 10M synthetic        |         9,985,363 | Occupancy   |     103 |           10.8 / 22.1 |               11.0 / 22.2 |          17.4 / 17.8 |          0 |
+| 10M synthetic        |         9,985,363 | Hour of day |     127 |           11.0 / 13.6 |               11.2 / 14.0 |          17.3 / 17.7 |          0 |
+| 10M synthetic        |         9,985,363 | Time        |     330 |             5.0 / 6.5 |                 5.3 / 6.8 |          17.4 / 17.7 |          0 |
+| Real month (2026-09) |         4,443,182 | Occupancy   |     103 |             6.5 / 9.5 |                 6.9 / 9.9 |          17.5 / 18.1 |          0 |
+| Real month (2026-09) |         4,443,182 | Hour of day |     127 |             6.6 / 8.6 |                 6.8 / 8.8 |          16.9 / 17.6 |          0 |
+| Real month (2026-09) |         4,443,182 | Time        |     330 |             2.2 / 3.0 |                 2.6 / 3.9 |          16.8 / 18.1 |          0 |
+
+The first update after a load also builds the per-bin indexes, in the worker: 15 ms at 1M, 56 ms for the real month,
+109 ms at 10M (ADR 0015 defers it until someone brushes).
+
+**What the numbers say**
+
+- **Brushing never blocks the page.** Across 3,240 brushed frames, no long task, and the worst frame was 18.2 ms.
+  The filtering happens in the worker, and the page only gets back counts under 3 KB.
+- **Most updates arrive within the next frame.** The round trip is under 12 ms at the median everywhere. The slowest
+  case, the occupancy brush on 10M readings, has a p95 of 22 ms: about two frames for the other views to catch up,
+  while the brush itself keeps moving at 60 fps.
+- **The time brush is the cheapest.** The readings are in time order, so a time range is a row range, and a move only
+  touches the rows at its two ends.
+- **The worker time is the whole cost.** The round trip adds 0.2–2 ms to it: the message, the copy and Vue's update.
+
 ## Data
 
 Station status history and station information come from
