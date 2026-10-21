@@ -78,7 +78,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 - [ ] **A8 Open Graph tags.** Link previews on LinkedIn/X show no image or summary: add static `og:title/description/image/url/image:alt` and `twitter:card=summary_large_image` to `apps/web/index.html`, plus a 1200×630 card from a benchmark screenshot (og-card skill).
 - [ ] **A6 README first screen.** No image and no live link above the fold: add the card or a screenshot/GIF of the 10M-point zoom at the top, and a "Live demo" link once A9 is done (`README.md`).
 - [ ] **C15 Deploy pipeline.** Nothing publishes the site: add a deploy job to `.github/workflows/ci.yml` on push to main (after D1 and A9).
-- [ ] **C17 README overclaims brush.** The repository layout says `packages/charts` has a brush, but no brush exists until Phase 3: mark it as planned (`README.md` > Repository layout).
+- [x] **C17 README overclaims brush.** The repository layout says `packages/charts` has a brush, but no brush exists until Phase 3: mark it as planned (`README.md` > Repository layout).
 - [ ] **B11 GitHub repo metadata.** `pearpages/bicing` has no description, website or topics, so it looks abandoned in search and on the profile: set them (`gh repo edit`), with the website pointing at `bicing.soms.cat` once A9 is live.
 - [ ] **B12 Favicon.** Tabs and bookmarks show the browser default: add a favicon and apple-touch-icon to `apps/web/index.html`.
 - [ ] **B13 README badges.** No CI or license badges near the title: add them once the GitHub remote exists (D1).
