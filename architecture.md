@@ -70,7 +70,11 @@ ADR 0012). `--read-month` reads that into `ObservationColumns` + `StationTable` 
      days with no snapshot at all. Coverage runs from the first catalogued month to the end of the last one, so
      a month that starts late or ends early shows up as a gap too. Detected from the data, never assumed.
      `unusableMonths` lists months whose status archive holds the wrong file (ADR 0012), with the reason.
-   - `manifest.json`: each file with its rows, bytes and time range, for the browser loader (T2.4).
+   - `agg-1d.parquet` and `agg-1h-<YYYY>.parquet` (T2.5a, ADR 0014): per station and UTC bucket, over in-service
+     readings, the `min`, `max` and `mean` bikes and the `count` of readings, sorted by (`t`, `stationIdx`). They're
+     built from the monthly files in the same step, so they can't drift from them.
+   - `manifest.json`: each file with its level (`raw`, `1h`, `1d`), rows, bytes and time range, for the browser
+     loader (T2.4).
 
    Parquet columns keep the compact types (`stationIdx` UINT16, `t` UINT32, the rest UINT8), Snappy-compressed so
    that every reader T2.4 compares can decode them.
@@ -132,7 +136,8 @@ drawn in the SVG layer: crosshair, marker and tooltip (ADR 0008). Flatbush is re
 - **min/max per pixel column**: exact visual envelope, O(n) over the visible slice. The default mode when downsampling is on.
 - **LTTB**: keeps the shape at a fixed point budget. Used where the point count matters more than the envelope.
 - Both return **indices** into the source columns, recomputed on zoom over the visible slice only.
-- Phase 2 adds precomputed multi-resolution aggregates (5 min / 1 h / 1 day), picked by the visible span.
+- Phase 2 adds precomputed aggregates at 1 hour and 1 day (ADR 0014), picked by the visible span and drawn as
+  min/max pairs, like min/max decimation.
 
 ## Framework boundary (Vue)
 
