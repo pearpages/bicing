@@ -140,8 +140,13 @@ div.bp-chart
 
 A second view in the sidebar: every station as a point at its position, colored by how full it is at one moment.
 
-- **Which moment:** the time under the chart's crosshair while the pointer is on the chart; otherwise the end of the
-  visible range, so the map follows a zoom or pan.
+- **Which moment:** the time under the chart's crosshair while the pointer is on the chart. Otherwise the moment
+  picked with the time scrubber (T3.5), and until one is picked, the end of the visible range, so the map follows a
+  zoom or pan.
+- **Time scrubber (T3.5):** a range input under the map spans the loaded data in 5-minute steps and always shows the
+  map's moment. Dragging it pins the moment; "follow the view" unpins it. Play walks the data from the moment
+  shown to the end in about 30 s, one step per animation frame, timed by the frame clock rather than by frame
+  count, so a slow frame skips ahead instead of slowing the playback. A new dataset stops playback and unpins.
 - **Occupancy at t** (`fillAt` in core): per station, the last reading at or before t, by binary search in its
   series (O(stations × log n), cheap enough for the main thread). The value is bikes / capacity. A station whose
   last reading is older than the series' gap threshold, or without a capacity, has no value and is drawn as "no
