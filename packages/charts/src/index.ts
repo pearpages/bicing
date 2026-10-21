@@ -8,6 +8,8 @@ export type { RendererSettings } from './renderers';
 export type { Hit } from './picking';
 export { animationFrameClock, FrameScheduler } from './scheduler';
 export type { FrameClock } from './scheduler';
+export { StationMap } from './StationMap';
+export type { StationMapOptions } from './StationMap';
 export { TimeSeriesChart } from './TimeSeriesChart';
 export type { FrameReport, TimeSeriesChartOptions } from './TimeSeriesChart';
 export type { RendererKind } from '@bicing/renderers';

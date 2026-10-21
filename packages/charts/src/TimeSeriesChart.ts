@@ -17,6 +17,7 @@ import {
 } from 'd3-zoom';
 import { drawGaps, gapAt, gapLines, MIN_HOVER_PX, sortGaps, type GapPeriod } from './gaps';
 import { createChartDom, type ChartDom } from './layers';
+import { placeTooltip } from './tooltip';
 import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
 import { decimatedLines, fullLines, visiblePointCount, type Decimation } from './lines';
@@ -26,8 +27,6 @@ type Layer = 'data' | 'axes' | 'overlay';
 
 /** How far (in CSS px) the pointer may be from a line and still pick it. */
 const PICK_RADIUS_PX = 24;
-const TOOLTIP_LINE_HEIGHT = 16;
-const TOOLTIP_PADDING = 8;
 type Domain = readonly [number, number];
 
 /**
@@ -405,23 +404,14 @@ export class TimeSeriesChart {
     hover.group.setAttribute('visibility', 'visible');
     hover.group.setAttribute('transform', `translate(${String(left)},${String(top)})`);
     setAttributes(hover.crosshair, { x1: px, x2: px, y1: 0, y2: this.height });
-    hover.tooltipText.replaceChildren(
-      ...lines.map((text, i) => {
-        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        setAttributes(tspan, { x: TOOLTIP_PADDING, dy: i === 0 ? 0 : TOOLTIP_LINE_HEIGHT });
-        tspan.textContent = text;
-        return tspan;
-      }),
+    placeTooltip(
+      { tooltip: hover.tooltip, box: hover.tooltipBox, text: hover.tooltipText },
+      lines,
+      px,
+      py,
+      this.width,
+      this.height,
     );
-    // Text can't be measured before layout in every environment, so estimate from the longest line.
-    const width = Math.max(...lines.map((l) => l.length)) * 6.6 + TOOLTIP_PADDING * 2;
-    const height = lines.length * TOOLTIP_LINE_HEIGHT + TOOLTIP_PADDING;
-    setAttributes(hover.tooltipBox, { width, height });
-    setAttributes(hover.tooltipText, { y: TOOLTIP_PADDING + 11 });
-    // Right of the point by default. Flip left or up when the tooltip would leave the plot.
-    const tx = px + 12 + width > this.width ? px - 12 - width : px + 12;
-    const ty = Math.min(Math.max(0, py - height / 2), this.height - height);
-    hover.tooltip.setAttribute('transform', `translate(${String(tx)},${String(ty)})`);
   }
 
   private drawData(domain: Domain): void {
