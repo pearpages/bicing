@@ -125,6 +125,11 @@ div.bp-chart
 - A per-chart `FrameScheduler` coalesces invalidations into one `requestAnimationFrame` and redraws only the dirty
   layers (`data`, `axes`, `overlay`).
 - The x-axis uses `d3-scale`'s `scaleUtc` and is labeled UTC. Barcelona-local time is a Phase 2 concern.
+- **Gaps (T2.6):** `setGaps(periods)` takes the feed-wide silences from `gaps.json`, each with an optional note
+  from the app (e.g. "Open Data BCN didn't publish November 2025"). They're shaded in the axes layer, under the grid,
+  at least 1 px wide so long zooms still show them. When the pointer's time falls inside one, the tooltip says there
+  is no data: the gap's start and end, its length, and the note. Station lines already break there (P9); the
+  shading says why. The gap code lives in `gaps.ts`, outside the chart controller (P17).
 - Text and formats come from a `ChartLocale` the app provides (a d3 time-format locale, a number formatter and the
   chart's few strings), and `setLocale()` swaps it and marks the axes and overlay dirty. The chart holds no copy of
   its own (see Language).
