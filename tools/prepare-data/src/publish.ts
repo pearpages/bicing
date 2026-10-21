@@ -105,7 +105,11 @@ export async function publish(options: {
           SELECT idx AS stationIdx, t, bikes_mech AS bikesMech, bikes_elec AS bikesElec, docks, status
           FROM read_parquet(${list(sources)}) JOIN station_index USING (station_id)
           WHERE t >= ${String(monthStart(month))} AND t < ${String(monthStart(month, 1))}
-          QUALIFY row_number() OVER (PARTITION BY station_id, t) = 1
+          -- 108 of 364M reports differ between the two archives; a fixed order keeps builds
+          -- reproducible (P19) instead of letting DuckDB pick either.
+          QUALIFY row_number() OVER (
+            PARTITION BY station_id, t ORDER BY status, bikes_mech, bikes_elec, docks
+          ) = 1
           ORDER BY t, stationIdx
         ) TO ${sqlString(join(outDir, file))} ${PARQUET}`);
       files.push(await describe(connection, outDir, file, { level: 'raw', month }));
