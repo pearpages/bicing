@@ -103,8 +103,10 @@ export class StationMap {
     this.scheduler.invalidate('points', 'hover');
   }
 
+  /** The app calls this on a theme change too, which is when the no-data color may change. */
   setColorScale(interpolate: (t: number) => string): void {
     this.renderer.setColorScale(interpolate);
+    this.applyNoDataColor();
     this.scheduler.invalidate('points');
   }
 
@@ -181,7 +183,14 @@ export class StationMap {
     this.index = index;
     this.indexed = located;
     this.renderer.setPositions(this.x, this.y);
+    this.applyNoDataColor();
     this.scheduler.invalidate('points', 'hover');
+  }
+
+  /** "No data" is themed in CSS (`--bp-map-no-data`, a hex color), like the rest of the chart (P16). */
+  private applyNoDataColor(): void {
+    const color = getComputedStyle(this.root).getPropertyValue('--bp-map-no-data').trim();
+    if (/^#[0-9a-f]{6}$/i.test(color)) this.renderer.setNoDataColor(color);
   }
 
   private drawHover(): void {

@@ -1,7 +1,10 @@
 import {
   CanvasRenderer,
   SvgRenderer,
+  WebGLPointRenderer,
   WebGLRenderer,
+  type PointRenderer,
+  type PointRendererOptions,
   type Renderer,
   type RendererKind,
 } from '@bicing/renderers';
@@ -25,4 +28,9 @@ export function createRenderer(kind: RendererKind, settings: RendererSettings = 
     case 'webgl':
       return new WebGLRenderer(options);
   }
+}
+
+/** The station map's renderer (T2.7). Exposed here so bindings don't import @bicing/renderers (P10). */
+export function createPointRenderer(options: PointRendererOptions = {}): PointRenderer {
+  return new WebGLPointRenderer(options);
 }
