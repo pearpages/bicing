@@ -26,6 +26,8 @@ export const en: Messages = {
     generating: (readings) => `Generating ${readings} readings in a worker…`,
     loadingMonth: (month) => `Loading ${month} from Open Data BCN in a worker…`,
     loadingLevel: (level) => `Loading ${level}…`,
+    gapMissing: (month) => `Not published by Open Data BCN: ${month}.`,
+    gapUnusable: (month) => `Wrong file on Open Data BCN: ${month}.`,
     historySummary: (points, stations, level) =>
       `Whole history, ${level}: ${points} points from ${stations} stations. Real data from Open Data BCN.`,
     levels: {

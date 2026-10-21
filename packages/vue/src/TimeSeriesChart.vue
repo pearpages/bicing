@@ -5,6 +5,7 @@ import type {
   ChartLocale,
   Decimation,
   FrameReport,
+  GapPeriod,
   Hit,
   RendererKind,
 } from '@bicing/charts';
@@ -23,6 +24,7 @@ const props = withDefaults(
     locale: ChartLocale;
     extent?: readonly [number, number] | undefined;
     keepView?: boolean;
+    gaps?: readonly GapPeriod[] | undefined;
     describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   }>(),
   {
@@ -48,6 +50,7 @@ const chart = useTimeSeriesChart(host, {
   locale: toRef(props, 'locale'),
   extent: toRef(props, 'extent'),
   keepView: toRef(props, 'keepView'),
+  gaps: toRef(props, 'gaps'),
   ...(props.describe ? { describe: props.describe } : {}),
   onFrame: (report) => {
     emit('frame', report);

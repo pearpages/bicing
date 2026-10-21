@@ -5,6 +5,7 @@ import {
   type ChartLocale,
   type Decimation,
   type FrameReport,
+  type GapPeriod,
   type Hit,
   type RendererKind,
 } from '@bicing/charts';
@@ -28,6 +29,8 @@ export interface UseTimeSeriesChartOptions {
   readonly locale: Readonly<Ref<ChartLocale>>;
   /** The zoom extent when it isn't the data's own: a whole-history view's coverage (T2.5b). */
   readonly extent?: Readonly<Ref<readonly [number, number] | undefined>>;
+  /** Feed-wide silences to shade and explain (T2.6). */
+  readonly gaps?: Readonly<Ref<readonly GapPeriod[] | undefined>>;
   /** New data keeps the current view instead of resetting the zoom (T2.5b). */
   readonly keepView?: Readonly<Ref<boolean | undefined>>;
   /** Line opacity, applied when a renderer is created. */
@@ -78,6 +81,7 @@ export function useTimeSeriesChart(
     if (options.onHover) instance.onHover(options.onHover);
     if (options.onView) instance.onView(options.onView);
     instance.setData(rawSeries(options.series.value), dataOptions());
+    instance.setGaps(options.gaps?.value ?? []);
     chart.value = instance;
   });
 
@@ -86,6 +90,7 @@ export function useTimeSeriesChart(
   watch(options.decimation, (decimation) => chart.value?.setDecimation(decimation));
   watch(options.colorScale, (colorScale) => chart.value?.setColorScale(colorScale));
   watch(options.locale, (locale) => chart.value?.setLocale(locale));
+  if (options.gaps) watch(options.gaps, (gaps) => chart.value?.setGaps(gaps ?? []));
 
   onBeforeUnmount(() => {
     chart.value?.destroy();

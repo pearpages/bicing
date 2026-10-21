@@ -25,7 +25,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [x] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
 - [x] **T2.5a** Build the aggregates (ADR 0014): per station and UTC bucket, over in-service readings, `min`/`max`/`mean`/`count` of bikes; `agg-1d.parquet` and `agg-1h-<YYYY>.parquet`, listed in `manifest.json`. _Done when:_ fixture tests check the values, and the full build's aggregates match the raw files (row counts, extremes). _(Amended 2026-10-21: no 5-minute level, which would be 3% smaller than raw; split from T2.5.)_
 - [x] **T2.5b** Load the level the visible span needs (raw / 1 h / 1 day) for the visible range, without resetting the zoom; buckets drawn as min/max pairs (ADR 0014); a "Whole history" option. Feeds D3, D5. _Done when:_ zooming from the whole history down to one day switches levels in the browser, measured at 60 fps on WebGL.
-- [ ] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
+- [x] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
 - [ ] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
 - [ ] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
 
@@ -75,6 +75,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-21: T2.6 done — the 295 gaps of `gaps.json` are shaded in real data, and hovering one says there's no data, from when to when, how long, and why when known (e.g. 2025-09-30 → 12-09, 69 days: November not published, October's archive wrong). A month view spans its calendar month, so a late start or early end shows; checked in headless Chrome in both languages.
 - [x] 2026-10-21: T2.5b done — “Tot l'historial” opens the whole history in ~0.1 s at the daily level and switches to hourly (~3 weeks) and raw readings (≤ 7 days) as you zoom, keeping the view; measured at 60 fps (p95 16.7 ms, 0 frames over 50 ms) at every stage on WebGL2 (Apple M4 Pro, headless Chrome 155). Found D13.
 - [x] 2026-10-21: T2.5a done — `agg-1d.parquet` (1,297,334 rows, 8 MB) and 8 yearly `agg-1h` files (30,689,062 rows); counts sum to every in-service reading, extremes match, and a recomputed station-year matches bucket for bucket (ADR 0014).
 - [x] 2026-10-20: T2.4 done — parquet-wasm in the data worker (ADR 0013; 107 ms vs 484 ms for hyparquet on a month); “Reals” in the app loads a real month in ~0.3 s (setembre del 2026: 4,443,182 points at 61 fps), checked in headless Chrome in both languages.

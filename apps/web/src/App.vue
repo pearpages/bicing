@@ -1,10 +1,8 @@
 <script setup lang="ts">
 import type {
-  ChartFormat,
   TimeSeriesChart as ChartController,
   Decimation,
   FrameReport,
-  Hit,
   RendererKind,
 } from '@bicing/charts';
 import { TimeSeriesChart } from '@bicing/vue';
@@ -23,6 +21,9 @@ import { useControlOptions } from './controls/useControlOptions';
 import { DatasetError, useDataset } from './data/useDataset';
 import { useDatasetText } from './data/useDatasetText';
 import { useDataSource } from './data/useDataSource';
+import { useDescribeHit } from './data/describeHit';
+import { monthRange } from './data/monthRange';
+import { useGaps } from './data/useGaps';
 import { useHistoryView } from './data/useHistoryView';
 import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
@@ -39,6 +40,15 @@ const { kind: sourceKind, rows, month, history, realMonths, source } = useDataSo
 
 const dataset = useDataset();
 const historyView = useHistoryView(dataset, history);
+const { gaps } = useGaps(sourceKind);
+const describe = useDescribeHit(dataset);
+// A month spans its calendar month, so a late start or an early end shows as a shaded gap (T2.6);
+// the whole history spans its coverage at every level (T2.5b).
+const chartExtent = computed(() => {
+  const loaded = dataset.source.value;
+  if (loaded?.kind === 'real') return monthRange(loaded.month);
+  return dataset.current.value?.view?.extent;
+});
 const perf = usePerfMonitor();
 const scheme = useColorScheme();
 const colorScale = computed(() => occupancyScale(scheme.value));
@@ -56,18 +66,6 @@ const progressText = computed(() => {
     configLabel(progress.config, t.value.results),
   );
 });
-
-function describe(hit: Hit, format: ChartFormat): readonly string[] {
-  const stations = dataset.current.value?.stations;
-  const text = t.value;
-  const name = stations?.names[hit.station] ?? text.chart.station(hit.station + 1);
-  const capacity = stations?.capacity[hit.station];
-  return [
-    name,
-    format.time(hit.t),
-    capacity ? text.tooltip.available(hit.y, capacity) : text.tooltip.availableNoCapacity(hit.y),
-  ];
-}
 
 function onFrame(report: FrameReport): void {
   perf.recordFrame(report);
@@ -217,8 +215,9 @@ onMounted(() => {
             :alpha="0.35"
             :locale="chartText"
             :describe="describe"
-            :extent="dataset.current.value?.view?.extent"
+            :extent="chartExtent"
             :keep-view="dataset.source.value?.kind === 'history'"
+            :gaps="gaps"
             @frame="onFrame"
             @view="historyView.onView"
           />

@@ -31,6 +31,8 @@ export const ca = {
     generating: (readings: string) => `Generant ${readings} lectures en un worker…`,
     loadingMonth: (month: string) => `Carregant ${month} d'Open Data BCN en un worker…`,
     loadingLevel: (level: string) => `Carregant ${level}…`,
+    gapMissing: (month: string) => `Mes no publicat per Open Data BCN: ${month}.`,
+    gapUnusable: (month: string) => `Arxiu equivocat a Open Data BCN: ${month}.`,
     historySummary: (points: string, stations: string, level: string) =>
       `Tot l'historial, ${level}: ${points} punts de ${stations} estacions. Dades reals d'Open Data BCN.`,
     levels: {
