@@ -17,6 +17,7 @@ import {
 } from 'd3-zoom';
 import { drawGaps, gapAt, gapLines, MIN_HOVER_PX, sortGaps, type GapPeriod } from './gaps';
 import { createChartDom, type ChartDom } from './layers';
+import { TimeBrush, type TimeRange } from './timeBrush';
 import { placeTooltip } from './tooltip';
 import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
@@ -92,6 +93,8 @@ export class TimeSeriesChart {
   private readonly frameListeners = new Set<Listener<FrameReport>>();
   private readonly viewListeners = new Set<Listener<Domain>>();
   private readonly hoverListeners = new Set<Listener<Hit | null>>();
+  private readonly brushListeners = new Set<Listener<TimeRange | null>>();
+  private readonly brush: TimeBrush;
   private readonly describe: ((hit: Hit, format: ChartFormat) => readonly string[]) | null;
   private pointerAt: readonly [number, number] | null = null;
   private gaps: readonly GapPeriod[] = [];
@@ -136,6 +139,13 @@ export class TimeSeriesChart {
 
     this.zoomBehavior = zoom<HTMLDivElement, unknown>()
       .scaleExtent([1, 1])
+      // d3-zoom's default filter, minus shift + drag, which belongs to the time brush (T3.3).
+      .filter(
+        (event: MouseEvent) =>
+          (!event.ctrlKey || event.type === 'wheel') &&
+          !event.button &&
+          !(event.shiftKey && event.type !== 'wheel'),
+      )
       .on('start', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
         // Programmatic zooms have no sourceEvent; only real gestures switch to the live policy.
         if (event.sourceEvent) this.interacting = true;
@@ -148,6 +158,17 @@ export class TimeSeriesChart {
       .on('end', (event: D3ZoomEvent<HTMLDivElement, unknown>) => {
         if (event.sourceEvent) this.setInteracting(false);
       });
+    this.brush = new TimeBrush(
+      this.dom.overlay,
+      () => {
+        const [d0, d1] = this.domain;
+        const scale = (d1 - d0) / Math.max(1, this.width);
+        return { toTime: (px) => d0 + px * scale, toPx: (t) => (t - d0) / scale };
+      },
+      (range) => {
+        for (const listener of this.brushListeners) listener(range);
+      },
+    );
     select(this.dom.overlay)
       .call(this.zoomBehavior)
       .on('pointermove.hover', (event: PointerEvent) => {
@@ -297,6 +318,7 @@ export class TimeSeriesChart {
     this.renderer.resize(width, height, this.dpr);
     this.updateZoomExtents();
     if (keep) this.zoomTo(keep);
+    this.brush.resize(width, height);
     this.scheduler.invalidate('data', 'axes');
     // Resizing a canvas clears it; draw now rather than show one blank frame.
     this.scheduler.flush();
@@ -312,6 +334,31 @@ export class TimeSeriesChart {
     this.frameListeners.clear();
     this.viewListeners.clear();
     this.hoverListeners.clear();
+    this.brushListeners.clear();
+    this.brush.destroy();
+  }
+
+  /**
+   * The time brush (T3.3): shift + drag selects a range of minutes. Off by default; the app turns
+   * it on for data it can filter (ADR 0015), and turning it off clears the selection.
+   */
+  setBrushEnabled(enabled: boolean): void {
+    this.brush.setEnabled(enabled);
+  }
+
+  /** Sets the brush without reporting it (e.g. "clear filters"). */
+  setBrush(range: TimeRange | null): void {
+    this.brush.set(range);
+  }
+
+  get brushRange(): TimeRange | null {
+    return this.brush.selection;
+  }
+
+  /** User brushing only: live while dragging, then at the end; null when it's cleared. */
+  onBrush(listener: Listener<TimeRange | null>): () => void {
+    this.brushListeners.add(listener);
+    return () => this.brushListeners.delete(listener);
   }
 
   private mountRenderer(): void {
@@ -489,6 +536,8 @@ export class TimeSeriesChart {
   }
 
   private drawAxes(domain: Domain): void {
+    // The brush is kept in minutes; the axes redraw on every view change, so it moves with them.
+    this.brush.place();
     const left = this.dom.plot.offsetLeft;
     const top = this.dom.plot.offsetTop;
     const x = scaleUtc()
