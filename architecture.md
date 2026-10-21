@@ -136,6 +136,23 @@ div.bp-chart
 - Colors come from an interpolator the app provides per theme (a single-hue sequential ramp for "mean
   occupancy", following the dataviz method). The chart doesn't hardcode a palette.
 
+## Station map (T2.7)
+
+A second view in the sidebar: every station as a point at its position, colored by how full it is at one moment.
+
+- **Which moment:** the time under the chart's crosshair while the pointer is on the chart; otherwise the end of the
+  visible range, so the map follows a zoom or pan.
+- **Occupancy at t** (`fillAt` in core): per station, the last reading at or before t, by binary search in its
+  series (O(stations × log n), cheap enough for the main thread). The value is bikes / capacity. A station whose
+  last reading is older than the series' gap threshold, or without a capacity, has no value and is drawn as "no
+  data", never as empty (P9).
+- **Drawing:** `StationMap` (`@bicing/charts`) projects longitude/latitude with `d3-geo`'s `geoMercator().fitExtent`
+  (P3). A `PointRenderer` (`@bicing/renderers`, WebGL2 `gl.POINTS`) uploads the projected positions on resize and
+  the values when the moment changes. Colors come from the same ramp texture as the lines, and "no data" from a
+  CSS custom property.
+- **Hover:** a Flatbush index over the projected points (ADR 0008), rebuilt only on resize or new stations. The
+  nearest station within 12 px gets a ring and a tooltip worded by the app (name, time, bikes of capacity).
+
 ## Rendering strategies
 
 - **SVG baseline**: one `<path>` per line, `d` rebuilt every frame, no culling (a realistic D3 baseline). Capped at 1M
