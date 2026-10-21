@@ -16,7 +16,8 @@
     "lint": "eslint .",
     "test": "vitest",
     "synth": "pnpm --filter @bicing/tool-synthetic synth",
-    "prepare-data": "pnpm --filter @bicing/tool-prepare-data prepare-data"
+    "prepare-data": "pnpm --filter @bicing/tool-prepare-data prepare-data",
+    "bench": "vitest bench"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

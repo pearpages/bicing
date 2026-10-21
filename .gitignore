@@ -5,3 +5,6 @@ coverage
 .DS_Store
 # Downloaded and generated datasets never go in git (see architecture.md > Deployment).
 /data/
+
+# Benchmark results belong to the machine that ran them (P5); the README records them.
+bench-results/

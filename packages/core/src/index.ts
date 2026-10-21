@@ -1,6 +1,10 @@
 export { allocateAggregates, buildAggregateSeries } from './aggregate-series';
 export type { AggregateColumns } from './aggregate-series';
 export { fillAt } from './fill-at';
+export { buildBinIndex } from './crossfilter/bin-index';
+export type { BinIndex } from './crossfilter/bin-index';
+export { Crossfilter } from './crossfilter/crossfilter';
+export type { BinnedDimension, CrossfilterInput } from './crossfilter/crossfilter';
 export { lttb } from './decimate/lttb';
 export { minMaxPerPixel } from './decimate/minmax';
 export type { Decimated } from './decimate/result';
