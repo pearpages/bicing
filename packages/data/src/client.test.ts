@@ -54,7 +54,7 @@ const series = {
 function generated(id: number, rows: number): WorkerResponse {
   return {
     id,
-    type: 'generated',
+    type: 'dataset',
     observations: allocateObservations(rows),
     stations,
     series,

@@ -1,5 +1,6 @@
 import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
+import type { LoadOptions } from './load';
 import type { WorkerRequest, WorkerResponse } from './protocol';
 
 /** The slice of the Worker API the client uses, so tests can pass a fake. */
@@ -14,12 +15,14 @@ export interface GeneratedDataset {
   readonly observations: ObservationColumns;
   readonly stations: StationTable;
   readonly series: StationSeries;
-  /** Generation + series building inside the worker, excluding the transfer hop. */
+  /** Generation or loading + series building inside the worker, excluding the transfer hop. */
   readonly workerMs: number;
 }
 
 export interface DataClient {
   generate(options: GenerateOptions): Promise<GeneratedDataset>;
+  /** Real data: Parquet months from a base URL (ADR 0013). */
+  load(options: LoadOptions): Promise<GeneratedDataset>;
   /** Rejects every pending request and terminates the worker. */
   dispose(): void;
 }
@@ -64,14 +67,17 @@ export function createDataClient(worker: WorkerLike): DataClient {
     rejectAll(new Error(`Data worker failed: ${event.message}`));
   });
 
+  const send = (request: (id: number) => WorkerRequest) => {
+    const id = nextId++;
+    return new Promise<GeneratedDataset>((resolve, reject) => {
+      pending.set(id, { resolve, reject });
+      worker.postMessage(request(id));
+    });
+  };
+
   return {
-    generate(options) {
-      const id = nextId++;
-      return new Promise<GeneratedDataset>((resolve, reject) => {
-        pending.set(id, { resolve, reject });
-        worker.postMessage({ id, type: 'generate', options });
-      });
-    },
+    generate: (options) => send((id) => ({ id, type: 'generate', options })),
+    load: (options) => send((id) => ({ id, type: 'load', options })),
     dispose() {
       rejectAll(new Error('Data client disposed'));
       worker.terminate();

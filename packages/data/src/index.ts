@@ -1,6 +1,14 @@
 export { createDataClient } from './client';
 export type { DataClient, GeneratedDataset, WorkerLike } from './client';
-export { handleRequest } from './handler';
+export { createHandler } from './handler';
+export type { HandledResponse } from './handler';
+export { columnsFromArrowIpc, concatMonths, validateColumns } from './columns';
+export type { DecodedColumns, DecodeParquet } from './columns';
+export { loadMonths } from './load';
+export type { LoadDeps, LoadOptions } from './load';
+export { fetchManifest, isMonth, monthFile, parseManifest } from './manifest';
+export type { MonthEntry } from './manifest';
+export { parseStations } from './stations';
 export { transferList } from './protocol';
 export type { WorkerRequest, WorkerResponse } from './protocol';
 export { createDataWorker } from './worker';

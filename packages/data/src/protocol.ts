@@ -1,24 +1,24 @@
 import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
+import type { LoadOptions } from './load';
 
 /**
  * Main thread ↔ worker messages. A discriminated union rather than Comlink (ADR 0005): the
  * protocol is small, and making every transfer list explicit is the point of the exercise.
  */
-export interface WorkerRequest {
-  readonly id: number;
-  readonly type: 'generate';
-  readonly options: GenerateOptions;
-}
+export type WorkerRequest =
+  | { readonly id: number; readonly type: 'generate'; readonly options: GenerateOptions }
+  /** Real data: Parquet months from a base URL (ADR 0013). */
+  | { readonly id: number; readonly type: 'load'; readonly options: LoadOptions };
 
 export type WorkerResponse =
   | {
       readonly id: number;
-      readonly type: 'generated';
+      readonly type: 'dataset';
       readonly observations: ObservationColumns;
       readonly stations: StationTable;
       readonly series: StationSeries;
-      /** Time spent generating inside the worker, excluding the postMessage hop. */
+      /** Time spent generating or loading inside the worker, excluding the postMessage hop. */
       readonly elapsedMs: number;
     }
   | { readonly id: number; readonly type: 'error'; readonly message: string };
