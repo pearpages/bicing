@@ -6,6 +6,8 @@ export interface ChartDom {
   readonly plot: HTMLDivElement;
   readonly axes: SVGSVGElement;
   readonly grid: SVGGElement;
+  /** Shaded gaps (T2.6), under the grid. */
+  readonly gaps: SVGGElement;
   readonly xAxis: SVGGElement;
   readonly yAxis: SVGGElement;
   readonly hover: HoverDom;
@@ -41,20 +43,21 @@ export function createChartDom(host: HTMLElement, label: string): ChartDom {
   plot.className = 'bp-chart__plot';
 
   const axes = svg('svg', 'bp-chart__axes');
+  const gaps = svg('g', 'bp-chart__gaps');
   const grid = svg('g', 'bp-chart__grid');
   const xAxis = svg('g', 'bp-chart__axis bp-chart__axis--x');
   const yAxis = svg('g', 'bp-chart__axis bp-chart__axis--y');
   // The grid sits in the axes layer, above the data. It's faint and doesn't hide marks, and the
   // renderers stay free of decoration.
   const hover = createHoverDom();
-  axes.append(grid, xAxis, yAxis, hover.group);
+  axes.append(gaps, grid, xAxis, yAxis, hover.group);
 
   const overlay = document.createElement('div');
   overlay.className = 'bp-chart__overlay';
 
   root.append(plot, axes, overlay);
   host.append(root);
-  return { root, plot, axes, grid, xAxis, yAxis, hover, overlay };
+  return { root, plot, axes, grid, gaps, xAxis, yAxis, hover, overlay };
 }
 
 function createHoverDom(): HoverDom {

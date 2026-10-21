@@ -1,5 +1,6 @@
 import type { Decimation } from '@bicing/charts';
 import type { MachineInfo } from '../benchmark/machine';
+import { duration } from './duration';
 
 const decimationNames: Record<Decimation, string> = {
   none: 'No',
@@ -72,6 +73,8 @@ export const ca = {
   },
   chart: {
     label: 'Bicicletes disponibles per estació al llarg del temps',
+    noData: 'Sense dades',
+    duration: (minutes: number) => duration(minutes, { day: 'dia', days: 'dies' }),
     station: (number: number) => `Estació ${String(number)}`,
     bikes: (count: number) => (count === 1 ? '1 bicicleta' : `${String(count)} bicicletes`),
     capped: (renderer: string, max: string, requested: string) =>

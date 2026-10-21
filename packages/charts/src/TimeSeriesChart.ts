@@ -15,6 +15,7 @@ import {
   type ZoomBehavior,
   type ZoomTransform,
 } from 'd3-zoom';
+import { drawGaps, gapAt, gapLines, sortGaps, type GapPeriod } from './gaps';
 import { createChartDom, type ChartDom } from './layers';
 import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
@@ -94,6 +95,7 @@ export class TimeSeriesChart {
   private readonly hoverListeners = new Set<Listener<Hit | null>>();
   private readonly describe: ((hit: Hit, format: ChartFormat) => readonly string[]) | null;
   private pointerAt: readonly [number, number] | null = null;
+  private gaps: readonly GapPeriod[] = [];
   private hit: Hit | null = null;
 
   private renderer: Renderer;
@@ -218,6 +220,12 @@ export class TimeSeriesChart {
     this.colorScale = colorScale;
     this.renderer.setColorScale(colorScale);
     this.scheduler.invalidate('data');
+  }
+
+  /** Feed-wide silences to shade and explain (T2.6). Independent of the data loaded. */
+  setGaps(gaps: readonly GapPeriod[]): void {
+    this.gaps = sortGaps(gaps);
+    this.scheduler.invalidate('axes', 'overlay');
   }
 
   /** Swaps the language of the axes, tooltip and messages. The data isn't touched. */
@@ -347,11 +355,17 @@ export class TimeSeriesChart {
     const { hover } = this.dom;
     const { series, pointerAt } = this;
     // Hover is off during gestures: the tooltip would jitter, and panning is the user's focus.
+    const active = pointerAt !== null && !this.interacting;
+    const pointerT = pointerAt
+      ? domain[0] + (pointerAt[0] / this.width) * (domain[1] - domain[0])
+      : 0;
+    // Inside a gap there's no reading to pick; the tooltip explains the gap instead.
+    const gap = active ? gapAt(this.gaps, pointerT) : null;
     const hit =
-      series && pointerAt && !this.interacting
+      series && pointerAt && active && !gap
         ? pickAt(
             series,
-            domain[0] + (pointerAt[0] / this.width) * (domain[1] - domain[0]),
+            pointerT,
             ((this.height - pointerAt[1]) / this.height) * this.yTop(),
             (PICK_RADIUS_PX / this.height) * this.yTop(),
           )
@@ -360,24 +374,35 @@ export class TimeSeriesChart {
       this.hit = hit;
       for (const listener of this.hoverListeners) listener(hit);
     }
+    if (gap && pointerAt) {
+      hover.marker.setAttribute('visibility', 'hidden');
+      this.showTooltip(gapLines(gap, this.format, this.locale), pointerAt[0], pointerAt[1]);
+      return;
+    }
     if (!hit || !pointerAt) {
       hover.group.setAttribute('visibility', 'hidden');
       return;
     }
 
-    const left = this.dom.plot.offsetLeft;
-    const top = this.dom.plot.offsetTop;
     const px = ((hit.t - domain[0]) / (domain[1] - domain[0])) * this.width;
     const py = this.height - (hit.y / this.yTop()) * this.height;
-    hover.group.setAttribute('visibility', 'visible');
-    hover.group.setAttribute('transform', `translate(${String(left)},${String(top)})`);
-    setAttributes(hover.crosshair, { x1: px, x2: px, y1: 0, y2: this.height });
+    hover.marker.setAttribute('visibility', 'inherit');
     setAttributes(hover.marker, { cx: px, cy: py });
     hover.marker.setAttribute('fill', this.colorScale(series?.meanFill[hit.station] ?? 0));
-
     const lines = this.describe
       ? this.describe(hit, this.format)
       : [this.locale.station(hit.station + 1), this.format.time(hit.t), this.locale.bikes(hit.y)];
+    this.showTooltip(lines, px, py);
+  }
+
+  /** The crosshair at `px` and a tooltip beside (`px`, `py`), in plot coordinates. */
+  private showTooltip(lines: readonly string[], px: number, py: number): void {
+    const { hover } = this.dom;
+    const left = this.dom.plot.offsetLeft;
+    const top = this.dom.plot.offsetTop;
+    hover.group.setAttribute('visibility', 'visible');
+    hover.group.setAttribute('transform', `translate(${String(left)},${String(top)})`);
+    setAttributes(hover.crosshair, { x1: px, x2: px, y1: 0, y2: this.height });
     hover.tooltipText.replaceChildren(
       ...lines.map((text, i) => {
         const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
@@ -495,6 +520,8 @@ export class TimeSeriesChart {
           .ticks(yTicks)
           .tickFormat((n) => this.format.number(n.valueOf())),
       );
+    this.dom.gaps.setAttribute('transform', `translate(${String(left)},${String(top)})`);
+    drawGaps(this.dom.gaps, this.gaps, domain, this.width, this.height);
     select(this.dom.grid)
       .attr('transform', `translate(${String(left)},${String(top)})`)
       .call(

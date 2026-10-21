@@ -1,4 +1,5 @@
 import type { Decimation } from '@bicing/charts';
+import { duration } from './duration';
 import type { Messages } from './messages.ca';
 
 const decimationNames: Record<Decimation, string> = {
@@ -63,6 +64,8 @@ export const en: Messages = {
   },
   chart: {
     label: 'Bikes available per station over time',
+    noData: 'No data',
+    duration: (minutes) => duration(minutes, { day: 'day', days: 'days' }),
     station: (number) => `Station ${String(number)}`,
     bikes: (count) => (count === 1 ? '1 bike' : `${String(count)} bikes`),
     capped: (renderer, max, requested) =>

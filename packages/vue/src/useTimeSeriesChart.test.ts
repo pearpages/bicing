@@ -74,6 +74,8 @@ function fakeLocale(label: string): ChartLocale {
     station: String,
     bikes: String,
     capped: () => '',
+    noData: '',
+    duration: String,
   };
 }
 

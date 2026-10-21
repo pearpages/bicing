@@ -16,6 +16,8 @@ export function testLocale(tag: 'ca' | 'en'): ChartLocale {
         time: caES as TimeLocaleDefinition,
         formatNumber,
         label: 'Bicicletes disponibles per estació al llarg del temps',
+        noData: 'Sense dades',
+        duration: (minutes) => `${String(Math.round(minutes / 1_440))} dies`,
         station: (n) => `Estació ${String(n)}`,
         bikes: (n) => `${String(n)} bicicletes`,
         capped: (renderer, max, requested) =>
@@ -25,6 +27,8 @@ export function testLocale(tag: 'ca' | 'en'): ChartLocale {
         time: enGB as TimeLocaleDefinition,
         formatNumber,
         label: 'Bikes available per station over time',
+        noData: 'No data',
+        duration: (minutes) => `${String(Math.round(minutes / 1_440))} days`,
         station: (n) => `Station ${String(n)}`,
         bikes: (n) => `${String(n)} bikes`,
         capped: (renderer, max, requested) =>

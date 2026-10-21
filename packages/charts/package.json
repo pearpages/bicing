@@ -17,6 +17,7 @@
     "@types/d3-time": "3.0.4",
     "@types/d3-time-format": "4.0.3",
     "@types/d3-zoom": "3.0.8",
+    "fast-check": "4.10.2",
     "jsdom": "30.0.1",
     "typescript": "6.0.3",
     "vitest": "5.0.1"

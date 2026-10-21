@@ -1,6 +1,7 @@
 export { decimatedLines, fullLines, visiblePointCount } from './lines';
 export type { Decimation } from './lines';
 export type { ChartFormat, ChartLocale } from './locale';
+export type { GapPeriod } from './gaps';
 export { pickAt } from './picking';
 export { createRenderer } from './renderers';
 export type { RendererSettings } from './renderers';

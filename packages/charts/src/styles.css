@@ -17,6 +17,7 @@
   --bp-chart-tooltip-bg: #ffffff;
   --bp-chart-tooltip-border: rgb(128 128 128 / 0.35);
   --bp-chart-tooltip-text: #0b0b0b;
+  --bp-chart-gap: rgb(128 128 128 / 0.14);
 
   position: relative;
   width: 100%;
@@ -70,6 +71,10 @@
 .bp-chart__axis line {
   stroke: var(--bp-chart-axis-line);
   stroke-opacity: 0.45;
+}
+
+.bp-chart__gap {
+  fill: var(--bp-chart-gap);
 }
 
 .bp-chart__grid line {

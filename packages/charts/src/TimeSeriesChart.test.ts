@@ -326,6 +326,47 @@ describe('TimeSeriesChart', () => {
     expect(chart.domain[1]).toBeCloseTo(series.xMax, 6);
   });
 
+  test('gaps are shaded, and hovering inside one explains it instead of picking a line', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    hosts.push(host);
+    const { clock, frame } = manualClock();
+    const chart = new TimeSeriesChart(host, {
+      renderer: fakeRenderer().renderer,
+      locale: testLocale('en'),
+      clock,
+    });
+    chart.resize(400, 200);
+    const series = dataset(2_000);
+    chart.setData(series);
+    const mid = (series.xMin + series.xMax) / 2;
+    chart.setGaps([{ t0: mid - 100, t1: mid + 100, note: 'Archive missing' }]);
+    const hits: unknown[] = [];
+    chart.onHover((hit) => hits.push(hit));
+    frame();
+    expect(host.querySelectorAll('.bp-chart__gap')).toHaveLength(1);
+
+    const overlay = host.querySelector('.bp-chart__overlay');
+    // The middle of the plot is the middle of the gap.
+    overlay?.dispatchEvent(
+      new MouseEvent('pointermove', { clientX: 200, clientY: 100, bubbles: true }),
+    );
+    frame();
+    expect(hits.at(-1) ?? null).toBeNull();
+    expect(host.querySelector('.bp-chart__tooltip-text')?.textContent).toMatch(
+      /^No data.*Archive missing$/,
+    );
+    expect(host.querySelector('.bp-chart__marker')?.getAttribute('visibility')).toBe('hidden');
+
+    // Outside the gap, hover picks a station again and shows its marker.
+    overlay?.dispatchEvent(
+      new MouseEvent('pointermove', { clientX: 20, clientY: 100, bubbles: true }),
+    );
+    frame();
+    expect(host.querySelector('.bp-chart__tooltip-text')?.textContent).toMatch(/^Station \d+/);
+    expect(host.querySelector('.bp-chart__marker')?.getAttribute('visibility')).toBe('inherit');
+  });
+
   test('destroy removes the DOM and stops drawing', () => {
     const { chart, host, fake, frame } = setup();
     chart.setData(dataset(5_000));

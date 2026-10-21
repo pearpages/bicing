@@ -15,6 +15,10 @@ export interface ChartLocale {
   /** Default tooltip lines, used when the app gives no `describe`. Station numbers are 1-based. */
   readonly station: (number: number) => string;
   readonly bikes: (count: number) => string;
+  /** First line of a gap's tooltip (T2.6). */
+  readonly noData: string;
+  /** A gap's length, e.g. "12 dies" / "3 h 20 min". */
+  readonly duration: (minutes: number) => string;
   /** Why a renderer drew nothing. The counts arrive already formatted with `formatNumber`. */
   readonly capped: (renderer: string, max: string, requested: string) => string;
 }
