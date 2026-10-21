@@ -24,6 +24,7 @@ before they are accepted.
 | [0012](docs/adr/0012-open-data-ingest.md)               | Ingest: 7z-wasm extracts, DuckDB reads the CSVs, `last_reported` is the time       | Accepted | 2026-10-20 |
 | [0013](docs/adr/0013-browser-parquet-reader.md)         | The browser reads Parquet with parquet-wasm, in the data worker                    | Accepted | 2026-10-20 |
 | [0014](docs/adr/0014-multi-resolution-aggregates.md)    | Multi-resolution aggregates: raw, 1 hour and 1 day, drawn as min/max pairs         | Accepted | 2026-10-21 |
+| [0015](docs/adr/0015-crossfilter.md)                    | Crossfilter: incremental bitmasks in the data worker, small results to the page    | Accepted | 2026-10-21 |
 
 ## Format
 

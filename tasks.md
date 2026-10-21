@@ -35,7 +35,7 @@ Brushing one view filters the others, over the raw readings a view has loaded (s
 aggregate levels of the whole history aren't filtered). Budget: no main-thread task over 50 ms while brushing
 (architecture.md > Performance budgets). Check versions before adding anything (P25).
 
-- [ ] **T3.0** ADR: the crossfilter. Which dimensions (time, hour of day, occupancy, station); one bitset per dimension in the data worker with incremental updates on each brush move; what crosses threads (histogram counts and a per-station selection, transferred, versus a `SharedArrayBuffer` mask, ADR 0005); and what the chart and map do with a selection (dim the rest). _Done when:_ the owner accepts it.
+- [x] **T3.0** ADR: the crossfilter. Which dimensions (time, hour of day, occupancy, station); one bitset per dimension in the data worker with incremental updates on each brush move; what crosses threads (histogram counts and a per-station selection, transferred, versus a `SharedArrayBuffer` mask, ADR 0005); and what the chart and map do with a selection (dim the rest). _Done when:_ the owner accepts it.
 - [ ] **T3.1** core: bitset operations (set a range, AND, popcount) and a per-dimension sorted index, so a range filter is one contiguous run of rows. Examples and fast-check properties (P18). _Done when:_ a range filter over 10M rows updates its bitset in under 16 ms in Node, measured.
 - [ ] **T3.2** data: the crossfilter in the worker. It keeps the loaded columns, applies filters, and answers with each dimension's histogram counted under the _other_ filters (crossfilter semantics) plus the selected stations. _Done when:_ tests check the counts against a brute-force filter, and a brush update on a real month (4.4M rows) takes under 16 ms in the worker.
 - [ ] **T3.3** charts: an x brush on the time series (`d3-brush`), and a `HistogramChart` controller (D3 scales and axis, Canvas bars, its own brush) for hour of day and occupancy. _Done when:_ jsdom tests drive both brushes and the bars follow new counts.
@@ -87,6 +87,7 @@ aggregate levels of the whole history aren't filtered). Budget: no main-thread t
 
 ## Done
 
+- [x] 2026-10-21: T3.0 done — ADR 0015 accepted: an incremental crossfilter in the data worker (measured 1.3 ms per brush drag at 4.5M rows and 3.4 ms at 10M, against 21 / 47 ms for a full scan), four dimensions, stations dimmed as a whole.
 - [x] 2026-10-21: T2.8 done, Phase 2 complete — real-data time to first chart recorded in the README (cold, median of 3, M4 Pro): a month 0.30 s, a year hourly 0.35 s, the whole history daily 0.16 s locally; 3.2 / 3.7 / 2.4 s on 50 Mbps, against 33 s for a raw year. Found D14.
 - [x] 2026-10-21: T2.7 done — a station map in the sidebar (WebGL2 points, d3-geo projection, Flatbush hover) shows occupancy at the chart's crosshair time, or the end of the view; a crosshair sweep moved it through 61 moments at 60 fps (p95 16.7 ms) in headless Chrome. Stale stations show as "no data" (P9).
 - [x] 2026-10-21: T2.6 done — the 295 gaps of `gaps.json` are shaded in real data, and hovering one says there's no data, from when to when, how long, and why when known (e.g. 2025-09-30 → 12-09, 69 days: November not published, October's archive wrong). A month view spans its calendar month, so a late start or early end shows; checked in headless Chrome in both languages.

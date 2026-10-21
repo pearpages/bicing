@@ -153,6 +153,21 @@ A second view in the sidebar: every station as a point at its position, colored 
 - **Hover:** a Flatbush index over the projected points (ADR 0008), rebuilt only on resize or new stations. The
   nearest station within 12 px gets a ring and a tooltip worded by the app (name, time, bikes of capacity).
 
+## Linked views (Phase 3, ADR 0015)
+
+Brushing one view filters the others, over the raw readings a view has loaded (synthetic data up to 10M rows, or a
+real month).
+
+- **Dimensions:** time (an x brush on the chart), hour of day in Barcelona time and occupancy (histograms), station
+  (clicked on the map). Only in-service rows take part.
+- **The worker:** owns the crossfilter. It keeps per-row station, hour bin and occupancy bin, a `Uint8` mask with one
+  bit per dimension, and rows bucketed by bin. A brush move toggles only the rows that changed (bins entering or
+  leaving, or the two end runs of a time range) and updates the histograms and per-station counts by delta.
+- **The page:** gets each histogram counted under the _other_ filters, plus the per-station counts, in under 3 KB.
+  It sends the next brush position only once the previous answer has arrived. The time series and the map dim
+  stations with no passing reading, and the histograms draw the total faintly under what passes.
+- **Not filtered:** the whole history's aggregate levels and the 50M stress tier hide the brushes.
+
 ## Rendering strategies
 
 - **SVG baseline**: one `<path>` per line, `d` rebuilt every frame, no culling (a realistic D3 baseline). Capped at 1M
