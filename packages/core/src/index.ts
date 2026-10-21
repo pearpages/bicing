@@ -1,5 +1,6 @@
 export { allocateAggregates, buildAggregateSeries } from './aggregate-series';
 export type { AggregateColumns } from './aggregate-series';
+export { fillAt } from './fill-at';
 export { lttb } from './decimate/lttb';
 export { minMaxPerPixel } from './decimate/minmax';
 export type { Decimated } from './decimate/result';
