@@ -27,7 +27,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [x] **T2.5b** Load the level the visible span needs (raw / 1 h / 1 day) for the visible range, without resetting the zoom; buckets drawn as min/max pairs (ADR 0014); a "Whole history" option. Feeds D3, D5. _Done when:_ zooming from the whole history down to one day switches levels in the browser, measured at 60 fps on WebGL.
 - [x] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
 - [x] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
-- [ ] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
+- [x] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
 
 ### Phase 3 — Linked views (to be broken down later)
 
@@ -43,6 +43,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
 - [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
 - [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
+- [ ] **D14** Fewer bytes for real data: on 50 Mbps every load is within ~15% of its transfer time (README > Real data). Serve `.wasm` and the data with gzip/brotli (nginx and the data host, A9), consider the Snappy-only parquet-wasm build (ADR 0013), and range requests for the visible row groups.
 - [ ] **D13** Outlier readings squash the y-axis: a few readings report up to 198 bikes at stations with ~50 docks, so the whole-history axis runs to 200 while the data sits under ~55. Decide at ingest (flag readings far above capacity, ADR 0012) or in the chart (a robust y-domain); don't hide them silently (P9).
 - [ ] **D12** `prepare-data` downloads: retry HTTP 429/503 with backoff. On 2026-10-20 a full run at `--concurrency 3` got 165 × HTTP 503 after 9 downloads; one at a time worked. Consider making 1 the default.
 - [x] **D11** ~~2019-era information CSVs have a misaligned header~~. Measured: only station 1's rows in 2019-03 are shifted. Handled in T2.2 by checking capacity against the readings (ADR 0012).
@@ -75,6 +76,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-21: T2.8 done, Phase 2 complete — real-data time to first chart recorded in the README (cold, median of 3, M4 Pro): a month 0.30 s, a year hourly 0.35 s, the whole history daily 0.16 s locally; 3.2 / 3.7 / 2.4 s on 50 Mbps, against 33 s for a raw year. Found D14.
 - [x] 2026-10-21: T2.7 done — a station map in the sidebar (WebGL2 points, d3-geo projection, Flatbush hover) shows occupancy at the chart's crosshair time, or the end of the view; a crosshair sweep moved it through 61 moments at 60 fps (p95 16.7 ms) in headless Chrome. Stale stations show as "no data" (P9).
 - [x] 2026-10-21: T2.6 done — the 295 gaps of `gaps.json` are shaded in real data, and hovering one says there's no data, from when to when, how long, and why when known (e.g. 2025-09-30 → 12-09, 69 days: November not published, October's archive wrong). A month view spans its calendar month, so a late start or early end shows; checked in headless Chrome in both languages.
 - [x] 2026-10-21: T2.5b done — “Tot l'historial” opens the whole history in ~0.1 s at the daily level and switches to hourly (~3 weeks) and raw readings (≤ 7 days) as you zoom, keeping the view; measured at 60 fps (p95 16.7 ms, 0 frames over 50 ms) at every stage on WebGL2 (Apple M4 Pro, headless Chrome 155). Found D13.

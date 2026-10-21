@@ -5,10 +5,15 @@ An interactive explorer of Barcelona's public bike-sharing history, built to sho
 > **Rendering millions of data points smoothly in the browser, with D3 doing the math and
 > Canvas 2D / WebGL2 doing the drawing.**
 
-Status: **Phase 1 complete.** A rendering core on seeded synthetic data: SVG, Canvas 2D and WebGL2 renderers behind
-one interface, min/max and LTTB downsampling, a D3-driven time series with zoom and hover, and a benchmark mode.
-**WebGL2 holds 60 fps at 10M points** on the reference machine, while SVG drops to 9 fps at 1M ([Benchmarks](#benchmarks)).
-Phase 2 brings the real Open Data BCN history. See [tasks.md](tasks.md).
+Status: **Phase 2 complete.** The whole Bicing history from Open Data BCN (364M readings, 2019–2026) in the
+browser, in Catalan and English:
+
+- a time series that switches between daily, hourly and original readings as you zoom, at 60 fps;
+- gaps shaded and explained, such as the autumn of 2025 that Open Data BCN never published correctly;
+- a WebGL station map that follows the chart's crosshair.
+
+**WebGL2 holds 60 fps at 10M points**, while SVG drops to 9 fps at 1M. **The whole history draws in 0.16 s**, and a
+year in 0.35 s ([Benchmarks](#benchmarks)). Phase 3 links the views. See [tasks.md](tasks.md).
 
 ## What to look at
 
@@ -18,7 +23,7 @@ Phase 2 brings the real Open Data BCN history. See [tasks.md](tasks.md).
 | The rules every change follows         | [principles.md](principles.md)                           |
 | Decisions and their trade-offs         | [decisions.md](decisions.md)                             |
 | Why Canvas/WebGL instead of SVG        | [ADR 0001](docs/adr/0001-canvas-webgl-for-data-marks.md) |
-| Benchmark results                      | [Benchmarks](#benchmarks) (Phase 1)                      |
+| Benchmark results                      | [Benchmarks](#benchmarks) (Phase 1 and real data)        |
 
 ## Getting started
 
@@ -108,6 +113,44 @@ drawn frame: worker generation, transfer and the first draw.
   at 10M, where Canvas goes from a 66.7 ms to a 33.3 ms p95 ([ADR 0006](docs/adr/0006-decimation-strategy.md)).
 - **50M is the edge**: 51 fps with WebGL, and 3.2 s to first chart (about 500 MB of columns generated in a worker).
 
+### Real data (Phase 2)
+
+How long it takes from asking for real data to its first drawn frame, in a cold tab (HTTP cache off, a new worker and
+a fresh parquet-wasm instance per run): fetching the Parquet in the worker, decoding, validating, building the series,
+transferring them, and the GPU upload. Each row is the median of 3 runs, on the local preview server and on a
+throttled 50 Mbps / 20 ms profile.
+
+**Machine:** Apple M4 Pro, macOS, headless Chrome 155 on WebGL2 (ANGLE Metal), 1400×900 CSS px, devicePixelRatio 1.
+Measured 2026-10-21 on the published data from `pnpm prepare-data --build`. Reproduce it with
+[`apps/web/scripts/bench-real-data.mjs`](apps/web/scripts/bench-real-data.mjs) against `vite preview`.
+
+| Data                                   | Network        | Downloaded | Points drawn | First chart (ms) |
+| -------------------------------------- | -------------- | ---------: | -----------: | ---------------: |
+| One month, original readings (2026-09) | local          |    17.9 MB |    4,443,182 |          **302** |
+| One month, original readings (2026-09) | 50 Mbps, 20 ms |    17.9 MB |    4,443,182 |            3,229 |
+| One year, original readings (2024)     | local          |   189.9 MB |   52,749,411 |            2,526 |
+| One year, original readings (2024)     | 50 Mbps, 20 ms |   189.9 MB |   52,749,411 |           33,089 |
+| One year, hourly (2024)                | local          |    20.3 MB |    8,887,112 |          **347** |
+| One year, hourly (2024)                | 50 Mbps, 20 ms |    20.3 MB |    8,887,112 |            3,707 |
+| Whole history, daily (2019–2026)       | local          |    13.3 MB |    2,594,668 |          **164** |
+| Whole history, daily (2019–2026)       | 50 Mbps, 20 ms |    13.3 MB |    2,594,668 |            2,370 |
+
+"Downloaded" includes the 5.3 MB parquet-wasm module. `vite preview` serves it uncompressed; behind nginx with gzip
+it's 1.8 MB, which would take about 0.6 s off every throttled row.
+
+**What the numbers say**
+
+- **A month of real data is on screen in 0.3 s locally:** 12.6 MB of Parquet, 4.4M readings decoded in the worker
+  (ADR 0013).
+- **Raw readings don't scale to a year:** 190 MB and 52.7M points. The GPU still draws it, but it takes 33 s on
+  broadband. This is why the aggregates exist (ADR 0014).
+- **The hourly year shows the same span in 0.35 s locally, or 3.7 s on broadband,** from 20 MB. The whole history at
+  the daily level takes 0.16 s and 13 MB. "Tot l'historial" opens there and loads finer levels only for the window
+  you zoom into (T2.5b).
+- **On broadband, the network is the cost.** Every throttled row is within about 15% of the transfer time alone (bytes ÷ 50 Mbps), so
+  the next win is fewer bytes: compressing the WASM, a Snappy-only build of it, or range requests for just the
+  visible row groups.
+
 Memory is shown live in the app, but it's left out of this table: `measureUserAgentSpecificMemory` resolves lazily, and
 its samples lagged behind configuration changes during the automated run (see the Discovered list in
 [tasks.md](tasks.md)).
@@ -117,8 +160,9 @@ its samples lagged behind configuration changes during the automated run (see th
 Station status history and station information come from
 [Open Data BCN](https://opendata-ajuntament.barcelona.cat/) (datasets `estat-estacions-bicing` and
 `informacio-estacions-bicing`). `pnpm prepare-data` finds the monthly archives through the CKAN API and caches them in
-`data/raw` (a re-run only fetches what changed). The app switches to real data later in Phase 2. Until then,
-everything runs on seeded synthetic data with the same schema.
+`data/raw` (a re-run only fetches what changed). `pnpm prepare-data --build` stages and publishes them as Parquet,
+with hourly and daily aggregates and a `gaps.json` (ADR 0012, ADR 0014). In the app, **Dades → Reals** loads a month
+or the whole history; **Sintètiques** keeps the seeded generator that the Phase 1 benchmarks use.
 
 ## License
 

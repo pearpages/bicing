@@ -1,5 +1,6 @@
 import type { Decimation, RendererKind, TimeSeriesChart } from '@bicing/charts';
 import { computed, ref, type Ref } from 'vue';
+import type { DataSource } from '../data/source';
 import { DatasetError, type Dataset } from '../data/useDataset';
 import { waitFrames, waitUntil } from './frames';
 import type { PerfMonitor } from './perfMonitor';
@@ -43,11 +44,28 @@ export function useBenchmarkRun(deps: BenchmarkRunDeps) {
     await benchmark.run(configs);
   }
 
+  /**
+   * Loads any source (a month, a year at any level, the whole history) and resolves with its time
+   * to first chart: the real-data benchmarks (T2.8, scripts/bench-real-data.mjs).
+   */
+  async function load(source: DataSource) {
+    await dataset.load(source);
+    if (dataset.error.value) throw new DatasetError(dataset.error.value);
+    await waitUntil(() => dataset.timing.value?.firstChartMs != null, 300_000);
+    const timing = dataset.timing.value;
+    return {
+      firstChartMs: timing?.firstChartMs ?? null,
+      workerMs: timing?.workerMs ?? null,
+      rows: timing?.rows ?? 0,
+      points: dataset.current.value?.series.x.length ?? 0,
+    };
+  }
+
   if (import.meta.env.DEV || new URLSearchParams(location.search).has('automation')) {
     // Lets browser automation drive the same runner a person uses (tasks.md T1.15). Production
     // builds opt in with ?automation, so benchmarks can run on minified code.
     Object.assign(window, {
-      bicingBenchmark: { run: measure, fullMatrix, markdown: () => benchmark.markdown.value },
+      bicingBenchmark: { run: measure, fullMatrix, load, markdown: () => benchmark.markdown.value },
     });
   }
 
