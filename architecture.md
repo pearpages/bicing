@@ -167,6 +167,14 @@ real month).
   It sends the next brush position only once the previous answer has arrived. The time series and the map dim
   stations with no passing reading, and the histograms draw the total faintly under what passes.
 - **Not filtered:** the whole history's aggregate levels and the 50M stress tier hide the brushes.
+- **Brushes (T3.3):**
+  - **On the time series,** `d3-brush` lives in an SVG inside the zoom overlay. **Shift + drag brushes**; plain drag
+    still pans and the wheel still zooms, because each behaviour's filter claims only its own gesture. The selection
+    is kept in data time, so it stays on the same moments through zoom, pan and resize. Only user gestures are
+    reported, not the chart's own repositioning.
+  - **`HistogramChart`** is a separate controller: D3 band scale and axes, bars on a Canvas 2D (the total faint, what
+    passes the other filters over it), and its own x brush. The brush snaps to whole bins and reports bin ranges
+    [lo, hi). Colors come from CSS custom properties (P16).
 
 ## Rendering strategies
 
