@@ -2,7 +2,9 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
-    "types": ["vite/client", "node"]
+    "types": ["vite/client", "node"],
+    // vite.config.ts imports serve-data.ts with its extension, as Vite's native config loader requires.
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "vite.config.ts", "serve-data.ts"]
 }

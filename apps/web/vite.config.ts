@@ -1,7 +1,7 @@
 import vue from '@vitejs/plugin-vue';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
-import { serveData } from './serve-data';
+import { serveData } from './serve-data.ts';
 
 // Cross-origin isolation unlocks performance.measureUserAgentSpecificMemory() for the benchmark
 // overlay and SharedArrayBuffer for Phase 3. `credentialless` (not `require-corp`) still lets us
