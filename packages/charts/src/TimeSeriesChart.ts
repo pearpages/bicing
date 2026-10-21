@@ -228,6 +228,7 @@ export class TimeSeriesChart {
     this.mountRenderer();
     this.uploaded = null;
     this.uploadedKey = null;
+    this.dimmedFor = null;
     this.scheduler.invalidate('data');
   }
 

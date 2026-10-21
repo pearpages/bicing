@@ -8,6 +8,7 @@ import type {
   GapPeriod,
   Hit,
   RendererKind,
+  TimeRange,
 } from '@bicing/charts';
 import type { StationSeries } from '@bicing/core';
 import { ref, toRef } from 'vue';
@@ -26,6 +27,9 @@ const props = withDefaults(
     keepView?: boolean;
     gaps?: readonly GapPeriod[] | undefined;
     describe?: (hit: Hit, format: ChartFormat) => readonly string[];
+    brushEnabled?: boolean;
+    brush?: TimeRange | null;
+    dimmedStations?: Uint8Array | null;
   }>(),
   {
     renderer: 'webgl',
@@ -38,6 +42,7 @@ const emit = defineEmits<{
   frame: [report: FrameReport];
   hover: [hit: Hit | null];
   view: [domain: readonly [number, number]];
+  brush: [range: TimeRange | null];
 }>();
 
 const host = ref<HTMLElement | null>(null);
@@ -51,6 +56,9 @@ const chart = useTimeSeriesChart(host, {
   extent: toRef(props, 'extent'),
   keepView: toRef(props, 'keepView'),
   gaps: toRef(props, 'gaps'),
+  brushEnabled: toRef(props, 'brushEnabled'),
+  brush: toRef(props, 'brush'),
+  dimmedStations: toRef(props, 'dimmedStations'),
   ...(props.describe ? { describe: props.describe } : {}),
   onFrame: (report) => {
     emit('frame', report);
@@ -60,6 +68,9 @@ const chart = useTimeSeriesChart(host, {
   },
   onView: (domain) => {
     emit('view', domain);
+  },
+  onBrush: (range) => {
+    emit('brush', range);
   },
 });
 

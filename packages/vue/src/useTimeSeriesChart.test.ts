@@ -12,6 +12,9 @@ const calls = vi.hoisted(() => ({
   setRenderer: [] as string[],
   setDecimation: [] as string[],
   setLocale: [] as string[],
+  setBrush: [] as unknown[],
+  dimmed: [] as unknown[],
+  brushRange: null as readonly [number, number] | null,
   destroyed: 0,
 }));
 
@@ -29,7 +32,18 @@ vi.mock('@bicing/charts', () => ({
       calls.setDecimation.push(decimation);
     }
     setColorScale = () => undefined;
-    setDimmed = () => undefined;
+    setDimmedStations(dimmed: unknown) {
+      calls.dimmed.push(dimmed);
+    }
+    setBrushEnabled = () => undefined;
+    setBrush(range: readonly [number, number] | null) {
+      calls.setBrush.push(range);
+      calls.brushRange = range;
+    }
+    get brushRange() {
+      return calls.brushRange;
+    }
+    onBrush = () => undefined;
     setGaps = () => undefined;
     setLocale(locale: { label: string }) {
       calls.setLocale.push(locale.label);
@@ -87,6 +101,8 @@ function harness(data: Ref<StationSeries | null>) {
   const locale = shallowRef(fakeLocale('ca'));
   const extent = shallowRef<readonly [number, number] | undefined>(undefined);
   const keepView = ref(false);
+  const brush = shallowRef<readonly [number, number] | null>(null);
+  const dimmedStations = shallowRef<Uint8Array | null>(null);
   const component = defineComponent({
     setup() {
       const host = ref<HTMLElement | null>(null);
@@ -98,14 +114,28 @@ function harness(data: Ref<StationSeries | null>) {
         locale,
         extent,
         keepView,
+        brush,
+        dimmedStations,
       });
       return () => h('div', { ref: host });
     },
   });
-  return { wrapper: mount(component), renderer, decimation, locale, extent, keepView };
+  return {
+    wrapper: mount(component),
+    renderer,
+    decimation,
+    locale,
+    extent,
+    keepView,
+    brush,
+    dimmedStations,
+  };
 }
 
 beforeEach(() => {
+  calls.setBrush.length = 0;
+  calls.dimmed.length = 0;
+  calls.brushRange = null;
   calls.setData.length = 0;
   calls.dataOptions.length = 0;
   calls.setRenderer.length = 0;
@@ -163,5 +193,27 @@ describe('useTimeSeriesChart', () => {
     const { wrapper } = harness(shallowRef(series()));
     wrapper.unmount();
     expect(calls.destroyed).toBe(1);
+  });
+
+  test("the user's own brush echoed back isn't applied again; a different one is", async () => {
+    const { brush } = harness(ref(series()));
+    // The user brushed: the chart holds the range and the app stores the same one.
+    calls.brushRange = [10, 20];
+    brush.value = [10, 20];
+    await nextTick();
+    expect(calls.setBrush).toEqual([]);
+    // "Clear filters" from the app does reach the chart.
+    brush.value = null;
+    await nextTick();
+    expect(calls.setBrush).toEqual([null]);
+  });
+
+  test('dimmed stations reach the chart unwrapped', async () => {
+    const { dimmedStations } = harness(ref(series()));
+    dimmedStations.value = Uint8Array.of(1);
+    await nextTick();
+    const last = calls.dimmed.at(-1);
+    expect(last).toBeInstanceOf(Uint8Array);
+    expect(isProxy(last)).toBe(false);
   });
 });

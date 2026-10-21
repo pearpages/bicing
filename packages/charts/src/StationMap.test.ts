@@ -7,20 +7,21 @@ import { StationMap } from './StationMap';
 
 function fakeRenderer() {
   const calls = { positions: [] as [number[], number[]][], values: [] as number[][], renders: 0 };
+  const dims: (number[] | null)[] = [];
   const renderer: PointRenderer = {
     element: document.createElement('canvas'),
     setPositions: (x, y) => calls.positions.push([Array.from(x), Array.from(y)]),
     setValues: (values) => calls.values.push(Array.from(values)),
     setColorScale: () => undefined,
     setNoDataColor: () => undefined,
-    setDimmed: () => undefined,
+    setDimmed: (points) => dims.push(points ? Array.from(points) : null),
     resize: () => undefined,
     render: () => {
       calls.renders++;
     },
     destroy: () => undefined,
   };
-  return { renderer, calls };
+  return { renderer, calls, dims };
 }
 
 function manualClock() {
@@ -117,6 +118,28 @@ describe('StationMap', () => {
     frame();
     expect(hovered.at(-1)).toBeNull();
     expect(host.querySelector('.bp-map svg g')?.getAttribute('visibility')).toBe('hidden');
+  });
+
+  test('a click reports the station under it, or null on empty map', () => {
+    const { map, host } = setup();
+    const clicked: (number | null)[] = [];
+    map.onClick((station) => clicked.push(station));
+    const click = (x: number, y: number) =>
+      host
+        .querySelector('.bp-map')
+        ?.dispatchEvent(new MouseEvent('click', { clientX: x, clientY: y, bubbles: true }));
+    click(98, 52);
+    click(100, 5);
+    expect(clicked).toEqual([1, null]);
+  });
+
+  test('dimmed stations go to the renderer and redraw', () => {
+    const { map, fake, frame } = setup();
+    const renders = fake.calls.renders;
+    map.setDimmedStations(Uint8Array.of(0, 1, 0, 0));
+    frame();
+    expect(fake.dims.at(-1)).toEqual([0, 1, 0, 0]);
+    expect(fake.calls.renders).toBe(renders + 1);
   });
 
   test('destroy removes the DOM', () => {

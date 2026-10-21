@@ -87,11 +87,15 @@ export class HistogramChart {
   private selection: BinRange | null = null;
   private width = 0;
   private height = 0;
+  private tick: (bin: number) => string;
+  private formatNumber: (n: number) => string;
 
   constructor(
     host: HTMLElement,
     private readonly options: HistogramOptions,
   ) {
+    this.tick = options.tick;
+    this.formatNumber = options.formatNumber ?? String;
     this.total = new Uint32Array(options.bins);
     this.passing = this.total;
     this.root = document.createElement('div');
@@ -155,6 +159,13 @@ export class HistogramChart {
 
   setLabel(label: string): void {
     this.root.setAttribute('aria-label', label);
+  }
+
+  /** New wording for the axes, e.g. another language (P27). */
+  setFormat(tick: (bin: number) => string, formatNumber: (n: number) => string = String): void {
+    this.tick = tick;
+    this.formatNumber = formatNumber;
+    this.scheduler.invalidate('bars');
   }
 
   /** Sets the brush without reporting it (e.g. "clear filters"). */
@@ -254,9 +265,9 @@ export class HistogramChart {
       .call(
         axisBottom(x)
           .tickValues(bins.filter((b) => b % every === 0))
-          .tickFormat((b) => options.tick(b)),
+          .tickFormat((b) => this.tick(b)),
       );
-    const format = options.formatNumber ?? ((n: number) => String(n));
+    const format = this.formatNumber;
     select(this.yAxis)
       .attr('transform', `translate(${String(left)},${String(top)})`)
       .call(

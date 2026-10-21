@@ -39,6 +39,7 @@ export class StationMap {
   private readonly scheduler: FrameScheduler<'points' | 'hover'>;
   private readonly resizeObserver: ResizeObserver | null;
   private readonly listeners = new Set<Listener>();
+  private readonly clickListeners = new Set<Listener>();
   private stations: StationTable | null = null;
   private x = new Float32Array(0);
   private y = new Float32Array(0);
@@ -81,6 +82,7 @@ export class StationMap {
     }, options.clock);
     this.root.addEventListener('pointermove', this.onPointerMove);
     this.root.addEventListener('pointerleave', this.onPointerLeave);
+    this.root.addEventListener('click', this.onRootClick);
     this.resizeObserver =
       typeof ResizeObserver === 'function'
         ? new ResizeObserver((entries) => {
@@ -131,6 +133,12 @@ export class StationMap {
     return () => this.listeners.delete(listener);
   }
 
+  /** A click: the station under it, or null on empty map (ADR 0015's station selection). */
+  onClick(listener: Listener): () => void {
+    this.clickListeners.add(listener);
+    return () => this.clickListeners.delete(listener);
+  }
+
   /** Resizes to the plot box. Called by the ResizeObserver; public for environments without one. */
   resize(width: number, height: number): void {
     if (width === this.width && height === this.height) return;
@@ -149,9 +157,11 @@ export class StationMap {
     this.resizeObserver?.disconnect();
     this.root.removeEventListener('pointermove', this.onPointerMove);
     this.root.removeEventListener('pointerleave', this.onPointerLeave);
+    this.root.removeEventListener('click', this.onRootClick);
     this.renderer.destroy();
     this.root.remove();
     this.listeners.clear();
+    this.clickListeners.clear();
   }
 
   /** Stations' pixel positions for the current size, the renderer's buffer and the hover index. */
@@ -199,11 +209,16 @@ export class StationMap {
     if (/^#[0-9a-f]{6}$/i.test(color)) this.renderer.setNoDataColor(color);
   }
 
-  private drawHover(): void {
-    const { pointer, index } = this;
+  /** The nearest station within reach of a plot point, or null. */
+  private pick(point: readonly [number, number] | null): number | null {
+    const { index } = this;
     const found =
-      pointer && index ? index.neighbors(pointer[0], pointer[1], 1, PICK_RADIUS_PX)[0] : undefined;
-    const station = found === undefined ? null : (this.indexed[found] ?? null);
+      point && index ? index.neighbors(point[0], point[1], 1, PICK_RADIUS_PX)[0] : undefined;
+    return found === undefined ? null : (this.indexed[found] ?? null);
+  }
+
+  private drawHover(): void {
+    const station = this.pick(this.pointer);
     if (station !== this.hovered) {
       this.hovered = station;
       for (const listener of this.listeners) listener(station);
@@ -224,6 +239,12 @@ export class StationMap {
     const box = this.plot.getBoundingClientRect();
     this.pointer = [event.clientX - box.left, event.clientY - box.top];
     this.scheduler.invalidate('hover');
+  };
+
+  private readonly onRootClick = (event: MouseEvent): void => {
+    const box = this.plot.getBoundingClientRect();
+    const station = this.pick([event.clientX - box.left, event.clientY - box.top]);
+    for (const listener of this.clickListeners) listener(station);
   };
 
   private readonly onPointerLeave = (): void => {

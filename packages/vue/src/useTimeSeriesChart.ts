@@ -8,6 +8,7 @@ import {
   type GapPeriod,
   type Hit,
   type RendererKind,
+  type TimeRange,
 } from '@bicing/charts';
 import type { StationSeries } from '@bicing/core';
 import {
@@ -36,6 +37,13 @@ export interface UseTimeSeriesChartOptions {
   /** Line opacity, applied when a renderer is created. */
   readonly alpha?: Readonly<Ref<number | undefined>>;
   readonly describe?: (hit: Hit, format: ChartFormat) => readonly string[];
+  /** The time brush (T3.3): on only for data the crossfilter covers (ADR 0015). */
+  readonly brushEnabled?: Readonly<Ref<boolean | undefined>>;
+  /** The selection the app holds; the chart reports user changes through onBrush. */
+  readonly brush?: Readonly<Ref<TimeRange | null | undefined>>;
+  /** One flag per station, 1 = filtered out. */
+  readonly dimmedStations?: Readonly<Ref<Uint8Array | null | undefined>>;
+  readonly onBrush?: (range: TimeRange | null) => void;
   readonly onFrame?: (report: FrameReport) => void;
   readonly onHover?: (hit: Hit | null) => void;
   readonly onView?: (domain: readonly [number, number]) => void;
@@ -80,8 +88,12 @@ export function useTimeSeriesChart(
     if (options.onFrame) instance.onFrame(options.onFrame);
     if (options.onHover) instance.onHover(options.onHover);
     if (options.onView) instance.onView(options.onView);
+    if (options.onBrush) instance.onBrush(options.onBrush);
     instance.setData(rawSeries(options.series.value), dataOptions());
     instance.setGaps(options.gaps?.value ?? []);
+    instance.setBrushEnabled(options.brushEnabled?.value ?? false);
+    applyBrush(instance, options.brush?.value ?? null);
+    instance.setDimmedStations(rawFlags(options.dimmedStations?.value));
     chart.value = instance;
   });
 
@@ -91,6 +103,17 @@ export function useTimeSeriesChart(
   watch(options.colorScale, (colorScale) => chart.value?.setColorScale(colorScale));
   watch(options.locale, (locale) => chart.value?.setLocale(locale));
   if (options.gaps) watch(options.gaps, (gaps) => chart.value?.setGaps(gaps ?? []));
+  if (options.brushEnabled) {
+    watch(options.brushEnabled, (enabled) => chart.value?.setBrushEnabled(enabled ?? false));
+  }
+  if (options.brush) {
+    watch(options.brush, (range) => {
+      if (chart.value) applyBrush(chart.value, range ?? null);
+    });
+  }
+  if (options.dimmedStations) {
+    watch(options.dimmedStations, (dimmed) => chart.value?.setDimmedStations(rawFlags(dimmed)));
+  }
 
   onBeforeUnmount(() => {
     chart.value?.destroy();
@@ -102,4 +125,18 @@ export function useTimeSeriesChart(
 
 function rawSeries(series: StationSeries | null): StationSeries | null {
   return series ? toRaw(series) : null;
+}
+
+function rawFlags(flags: Uint8Array | null | undefined): Uint8Array | null {
+  return flags ? toRaw(flags) : null;
+}
+
+/**
+ * The app echoes every brush the user makes back as a prop. Moving the brush to where it already
+ * is would interrupt the drag in progress, so only a different range is applied.
+ */
+function applyBrush(chart: TimeSeriesChart, range: TimeRange | null): void {
+  const current = chart.brushRange;
+  if (current?.[0] === range?.[0] && current?.[1] === range?.[1]) return;
+  chart.setBrush(range);
 }

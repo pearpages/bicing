@@ -19,7 +19,11 @@ export interface UseStationMapOptions {
   readonly label: Readonly<Ref<string>>;
   /** Rebuilt by the app when the moment or the language changes; the tooltip follows. */
   readonly describe: Readonly<Ref<(station: number) => readonly string[]>>;
+  /** One flag per station, 1 = filtered out (ADR 0015). */
+  readonly dimmedStations?: Readonly<Ref<Uint8Array | null | undefined>>;
   readonly onHover?: (station: number | null) => void;
+  /** A click on a station, or null on empty map. */
+  readonly onClick?: (station: number | null) => void;
 }
 
 /**
@@ -43,6 +47,9 @@ export function useStationMap(
       }),
     );
     if (options.onHover) instance.onHover(options.onHover);
+    if (options.onClick) instance.onClick(options.onClick);
+    const dimmed = options.dimmedStations?.value;
+    if (dimmed) instance.setDimmedStations(toRaw(dimmed));
     instance.setColorScale(options.colorScale.value);
     const stations = options.stations.value;
     if (stations) instance.setStations(toRaw(stations));
@@ -60,6 +67,11 @@ export function useStationMap(
   watch(options.colorScale, (colorScale) => map.value?.setColorScale(colorScale));
   watch(options.label, (label) => map.value?.setLabel(label));
   watch(options.describe, () => map.value?.refreshTooltip());
+  if (options.dimmedStations) {
+    watch(options.dimmedStations, (dimmed) =>
+      map.value?.setDimmedStations(dimmed ? toRaw(dimmed) : null),
+    );
+  }
 
   onBeforeUnmount(() => {
     map.value?.destroy();

@@ -12,11 +12,12 @@ const props = withDefaults(
     label: string;
     describe: (station: number) => readonly string[];
     colorScale?: (t: number) => string;
+    dimmedStations?: Uint8Array | null;
   }>(),
   { colorScale: () => () => 'rgb(42, 120, 214)' },
 );
 
-const emit = defineEmits<{ hover: [station: number | null] }>();
+const emit = defineEmits<{ hover: [station: number | null]; select: [station: number | null] }>();
 
 const host = ref<HTMLElement | null>(null);
 useStationMap(host, {
@@ -25,8 +26,12 @@ useStationMap(host, {
   colorScale: toRef(props, 'colorScale'),
   label: toRef(props, 'label'),
   describe: toRef(props, 'describe'),
+  dimmedStations: toRef(props, 'dimmedStations'),
   onHover: (station) => {
     emit('hover', station);
+  },
+  onClick: (station) => {
+    emit('select', station);
   },
 });
 </script>
