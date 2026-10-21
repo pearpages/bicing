@@ -24,6 +24,14 @@ export const en: Messages = {
     chartArea: 'Bikes available per station',
     generating: (readings) => `Generating ${readings} readings in a worker…`,
     loadingMonth: (month) => `Loading ${month} from Open Data BCN in a worker…`,
+    loadingLevel: (level) => `Loading ${level}…`,
+    historySummary: (points, stations, level) =>
+      `Whole history, ${level}: ${points} points from ${stations} stations. Real data from Open Data BCN.`,
+    levels: {
+      raw: 'original readings',
+      '1h': 'hourly data',
+      '1d': 'daily data',
+    },
     realSummary: (readings, stations, month) =>
       `${readings} readings from ${stations} stations, ${month}. Real data from Open Data BCN.`,
     loadMonthFailed: (month, cause) => `Couldn't load ${month}: ${cause}.`,
@@ -36,6 +44,7 @@ export const en: Messages = {
     source: 'Data',
     sourceOptions: { synthetic: 'Synthetic', real: 'Real' },
     month: 'Month',
+    wholeHistory: 'Whole history',
     monthsLoading: 'Loading the list of months…',
     renderer: 'Renderer',
     svgTitle: 'One <path> per line, rebuilt every frame. Capped at 1M points.',

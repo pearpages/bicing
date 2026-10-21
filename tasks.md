@@ -24,7 +24,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [x] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
 - [x] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
 - [x] **T2.5a** Build the aggregates (ADR 0014): per station and UTC bucket, over in-service readings, `min`/`max`/`mean`/`count` of bikes; `agg-1d.parquet` and `agg-1h-<YYYY>.parquet`, listed in `manifest.json`. _Done when:_ fixture tests check the values, and the full build's aggregates match the raw files (row counts, extremes). _(Amended 2026-10-21: no 5-minute level, which would be 3% smaller than raw; split from T2.5.)_
-- [ ] **T2.5b** Load the level the visible span needs (raw / 1 h / 1 day) for the visible range, without resetting the zoom; buckets drawn as min/max pairs (ADR 0014); a "Whole history" option. Feeds D3, D5. _Done when:_ zooming from the whole history down to one day switches levels in the browser, measured at 60 fps on WebGL.
+- [x] **T2.5b** Load the level the visible span needs (raw / 1 h / 1 day) for the visible range, without resetting the zoom; buckets drawn as min/max pairs (ADR 0014); a "Whole history" option. Feeds D3, D5. _Done when:_ zooming from the whole history down to one day switches levels in the browser, measured at 60 fps on WebGL.
 - [ ] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
 - [ ] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
 - [ ] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
@@ -43,6 +43,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [ ] **D6** Shader-based line antialiasing (quads with feathered edges) as the quality alternative to MSAA (ADR 0009).
 - [ ] **D7** Accessible table view of the chart data (dataviz requirement: identity and values not only in pixels).
 - [ ] **D8** When the renderer is swapped, the chart re-uploads; show "uploading" in the overlay instead of a stale frame report.
+- [ ] **D13** Outlier readings squash the y-axis: a few readings report up to 198 bikes at stations with ~50 docks, so the whole-history axis runs to 200 while the data sits under ~55. Decide at ingest (flag readings far above capacity, ADR 0012) or in the chart (a robust y-domain); don't hide them silently (P9).
 - [ ] **D12** `prepare-data` downloads: retry HTTP 429/503 with backoff. On 2026-10-20 a full run at `--concurrency 3` got 165 × HTTP 503 after 9 downloads; one at a time worked. Consider making 1 the default.
 - [x] **D11** ~~2019-era information CSVs have a misaligned header~~. Measured: only station 1's rows in 2019-03 are shifted. Handled in T2.2 by checking capacity against the readings (ADR 0012).
 - [ ] **D10** Synthetic station names are English (`Synthetic station 014`) and show in the Catalan tooltip: name them neutrally or in Catalan in `packages/synthetic` (real names replace them in Phase 2).
@@ -74,6 +75,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-21: T2.5b done — “Tot l'historial” opens the whole history in ~0.1 s at the daily level and switches to hourly (~3 weeks) and raw readings (≤ 7 days) as you zoom, keeping the view; measured at 60 fps (p95 16.7 ms, 0 frames over 50 ms) at every stage on WebGL2 (Apple M4 Pro, headless Chrome 155). Found D13.
 - [x] 2026-10-21: T2.5a done — `agg-1d.parquet` (1,297,334 rows, 8 MB) and 8 yearly `agg-1h` files (30,689,062 rows); counts sum to every in-service reading, extremes match, and a recomputed station-year matches bucket for bucket (ADR 0014).
 - [x] 2026-10-20: T2.4 done — parquet-wasm in the data worker (ADR 0013; 107 ms vs 484 ms for hyparquet on a month); “Reals” in the app loads a real month in ~0.3 s (setembre del 2026: 4,443,182 points at 61 fps), checked in headless Chrome in both languages.
 - [x] 2026-10-20: T2.3 done — `pnpm prepare-data --build`: 364,565,534 readings from 561 stations in 89 monthly Parquet files + a merged one (1.19 GB), and `gaps.json` with the known gaps (2019-03 late start, 2025-10 unusable, 2025-11 missing, 2026-09 early end) plus 2020-03 and 2023-08 found in the data; 3 broken upstream archives handled (ADR 0012).

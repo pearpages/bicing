@@ -23,6 +23,7 @@ import { useControlOptions } from './controls/useControlOptions';
 import { DatasetError, useDataset } from './data/useDataset';
 import { useDatasetText } from './data/useDatasetText';
 import { useDataSource } from './data/useDataSource';
+import { useHistoryView } from './data/useHistoryView';
 import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
 import { occupancyScale, rampStops, useColorScheme } from './theme';
@@ -34,9 +35,10 @@ const chartText = computed(() => chartLocale(locale.value, t.value));
 
 const renderer = ref<RendererKind>('webgl');
 const decimation = ref<Decimation>('none');
-const { kind: sourceKind, rows, month, realMonths, source } = useDataSource();
+const { kind: sourceKind, rows, month, history, realMonths, source } = useDataSource();
 
 const dataset = useDataset();
+const historyView = useHistoryView(dataset, history);
 const perf = usePerfMonitor();
 const scheme = useColorScheme();
 const colorScale = computed(() => occupancyScale(scheme.value));
@@ -215,7 +217,10 @@ onMounted(() => {
             :alpha="0.35"
             :locale="chartText"
             :describe="describe"
+            :extent="dataset.current.value?.view?.extent"
+            :keep-view="dataset.source.value?.kind === 'history'"
             @frame="onFrame"
+            @view="historyView.onView"
           />
           <p v-if="dataset.loading.value !== null" :class="classes.status" role="status">
             {{ text.loading.value }}

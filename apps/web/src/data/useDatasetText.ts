@@ -21,6 +21,8 @@ export function useDatasetText(
     const stations = int(data.stations.length);
     const loaded = dataset.source.value;
     if (loaded?.kind === 'real') return app.realSummary(readings, stations, month(loaded.month));
+    if (loaded?.kind === 'history')
+      return app.historySummary(readings, stations, app.levels[loaded.level]);
     const days = (data.series.xMax - data.series.xMin) / 1_440;
     return app.summary(
       readings,
@@ -38,9 +40,15 @@ export function useDatasetText(
   const loading = computed(() => {
     const pending = dataset.loading.value;
     if (pending === null) return null;
-    return pending.kind === 'synthetic'
-      ? t.value.app.generating(fmt.value.int(pending.rows))
-      : t.value.app.loadingMonth(fmt.value.month(pending.month));
+    const { app } = t.value;
+    switch (pending.kind) {
+      case 'synthetic':
+        return app.generating(fmt.value.int(pending.rows));
+      case 'real':
+        return app.loadingMonth(fmt.value.month(pending.month));
+      case 'history':
+        return app.loadingLevel(app.levels[pending.level]);
+    }
   });
   return { summary, error, loading };
 }

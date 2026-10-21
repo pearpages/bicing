@@ -73,14 +73,15 @@ export function useDataset(): Dataset {
     const startedAt = performance.now();
     loading.value = source;
     error.value = null;
-    // Drop the previous dataset first: 50M rows next to 10M can exhaust the tab's memory.
-    current.value = null;
-    loadedSource.value = null;
-    loadedKey = null;
+    // Drop the previous dataset first: 50M rows next to 10M can exhaust the tab's memory. A
+    // whole-history view swapping levels keeps drawing the old one until the new one arrives.
+    if (!(source.kind === 'history' && loadedSource.value?.kind === 'history')) {
+      current.value = null;
+      loadedSource.value = null;
+      loadedKey = null;
+    }
     try {
-      const dataset = await (source.kind === 'synthetic'
-        ? client.generate({ seed: SEED, rows: source.rows })
-        : client.load({ baseUrl: DATA_BASE_URL, months: [source.month] }));
+      const dataset = await requestFor(source);
       if (request !== latest) return;
       const loaded: LoadTiming = {
         rows: dataset.rows,
@@ -98,6 +99,19 @@ export function useDataset(): Dataset {
       error.value = { source, cause: cause instanceof Error ? cause.message : String(cause) };
     } finally {
       if (request === latest) loading.value = null;
+    }
+  }
+
+  function requestFor(source: DataSource): Promise<GeneratedDataset> {
+    switch (source.kind) {
+      case 'synthetic':
+        return client.generate({ seed: SEED, rows: source.rows });
+      case 'real':
+        return client.load({ baseUrl: DATA_BASE_URL, months: [source.month] });
+      case 'history': {
+        const { level, t0, t1 } = source;
+        return client.view({ baseUrl: DATA_BASE_URL, level, t0, t1 });
+      }
     }
   }
 

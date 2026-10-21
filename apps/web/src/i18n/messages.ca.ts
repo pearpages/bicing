@@ -29,6 +29,14 @@ export const ca = {
     chartArea: 'Bicicletes disponibles per estació',
     generating: (readings: string) => `Generant ${readings} lectures en un worker…`,
     loadingMonth: (month: string) => `Carregant ${month} d'Open Data BCN en un worker…`,
+    loadingLevel: (level: string) => `Carregant ${level}…`,
+    historySummary: (points: string, stations: string, level: string) =>
+      `Tot l'historial, ${level}: ${points} punts de ${stations} estacions. Dades reals d'Open Data BCN.`,
+    levels: {
+      raw: 'lectures originals',
+      '1h': 'dades horàries',
+      '1d': 'dades diàries',
+    },
     realSummary: (readings: string, stations: string, month: string) =>
       `${readings} lectures de ${stations} estacions, ${month}. Dades reals d'Open Data BCN.`,
     loadMonthFailed: (month: string, cause: string) => `No s'ha pogut carregar ${month}: ${cause}.`,
@@ -42,6 +50,7 @@ export const ca = {
     source: 'Dades',
     sourceOptions: { synthetic: 'Sintètiques', real: 'Reals' },
     month: 'Mes',
+    wholeHistory: "Tot l'historial",
     monthsLoading: 'Carregant la llista de mesos…',
     renderer: 'Motor de dibuix',
     svgTitle: 'Un <path> per línia, refet a cada fotograma. Limitat a 1M de punts.',

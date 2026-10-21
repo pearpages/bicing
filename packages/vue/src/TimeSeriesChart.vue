@@ -21,7 +21,7 @@ const props = withDefaults(
     colorScale?: (t: number) => string;
     alpha?: number;
     locale: ChartLocale;
-    extent?: readonly [number, number];
+    extent?: readonly [number, number] | undefined;
     keepView?: boolean;
     describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   }>(),
