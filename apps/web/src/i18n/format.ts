@@ -1,6 +1,8 @@
 /** Number formats for one locale. Built once per language switch, not per call (P27). */
 export interface NumberFormats {
   readonly int: (value: number) => string;
+  /** Short counts for a narrow axis, e.g. "1,2 M" / "1.2M". */
+  readonly compact: (value: number) => string;
   /** A fixed number of decimals, as in a results table. */
   readonly fixed: (value: number, digits?: number) => string;
   readonly ms: (value: number) => string;
@@ -24,6 +26,7 @@ export function numberFormats(tag: string): NumberFormats {
     return format.format(value);
   };
   const int = (value: number) => fixed(value, 0);
+  const compact = new Intl.NumberFormat(tag, { notation: 'compact', maximumFractionDigits: 1 });
   const monthName = new Intl.DateTimeFormat(tag, {
     month: 'long',
     year: 'numeric',
@@ -31,6 +34,7 @@ export function numberFormats(tag: string): NumberFormats {
   });
   return {
     int,
+    compact: (value) => compact.format(value),
     fixed,
     ms: (value) => `${fixed(value)} ms`,
     duration: (ms) => (ms < 1_000 ? `${int(ms)} ms` : `${fixed(ms / 1_000)} s`),

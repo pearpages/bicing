@@ -1,4 +1,10 @@
-import { createDataClient, createDataWorker, type GeneratedDataset } from '@bicing/data';
+import {
+  createDataClient,
+  createDataWorker,
+  type FilterRequest,
+  type FilterResult,
+  type GeneratedDataset,
+} from '@bicing/data';
 import { markRaw, onBeforeUnmount, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { SEED } from './sizes';
 import { DATA_BASE_URL, sourceKey, type DataSource } from './source';
@@ -37,6 +43,8 @@ export interface Dataset {
   load(source: DataSource): Promise<void>;
   /** Call from the chart's first frame after new data, to close the time-to-first-chart measurement. */
   markFirstFrame(): void;
+  /** Crossfilter counts from the worker (ADR 0015), for a dataset with a generation. */
+  filter(request: FilterRequest): Promise<FilterResult>;
 }
 
 /**
@@ -126,5 +134,14 @@ export function useDataset(): Dataset {
     client.dispose();
   });
 
-  return { current, source: loadedSource, loading, error, timing, load, markFirstFrame };
+  return {
+    current,
+    source: loadedSource,
+    loading,
+    error,
+    timing,
+    load,
+    markFirstFrame,
+    filter: (request) => client.filter(request),
+  };
 }

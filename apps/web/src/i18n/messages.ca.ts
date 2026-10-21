@@ -88,6 +88,20 @@ export const ca = {
     noData: 'Sense dades en aquest moment',
     noDataLegend: 'Sense dades',
   },
+  filters: {
+    title: 'Filtres',
+    hint: 'Mantén premuda la tecla de majúscules i arrossega sobre el gràfic per triar un interval de temps. Arrossega sobre els histogrames i clica estacions al mapa.',
+    hour: 'Hora del dia',
+    hourLabel: 'Lectures per hora del dia, en hora de Barcelona',
+    fill: 'Ocupació',
+    fillLabel: "Lectures per ocupació de l'estació",
+    percent: (value: string) => `${value} %`,
+    passing: (passing: string, rows: string) => `${passing} de ${rows} lectures passen els filtres`,
+    stations: (count: number) =>
+      count === 1 ? '1 estació triada' : `${String(count)} estacions triades`,
+    clear: 'Esborra els filtres',
+    unavailable: 'Els filtres funcionen amb lectures originals, fins a 10 milions.',
+  },
   legend: {
     title: "Color de la línia: ocupació mitjana de l'estació",
     emptier: 'Més buida',

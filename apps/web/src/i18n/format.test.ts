@@ -12,6 +12,13 @@ describe('numberFormats', () => {
     expect(en.ms(16.66)).toBe('16.7 ms');
   });
 
+  test('compact counts stay short enough for a narrow axis', () => {
+    // Catalan keeps the unit on the number with a no-break space.
+    expect(ca.compact(1_500_000)).toBe('1,5\u00a0M');
+    expect(en.compact(1_500_000)).toBe('1.5m');
+    expect(ca.compact(150_000)).toBe('150\u00a0k');
+  });
+
   test('fixed keeps the requested decimals', () => {
     expect(ca.fixed(1, 1)).toBe('1,0');
     expect(en.fixed(59.6, 0)).toBe('60');

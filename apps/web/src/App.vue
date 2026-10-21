@@ -13,6 +13,7 @@ import { configLabel } from './benchmark/results';
 import { useBenchmarkRun } from './benchmark/useBenchmarkRun';
 import { usePerfMonitor } from './benchmark/usePerfMonitor';
 import OccupancyLegend from './components/OccupancyLegend.vue';
+import FilterPanel from './components/FilterPanel.vue';
 import PerfPanel from './components/PerfPanel.vue';
 import StationMapPanel from './components/StationMapPanel.vue';
 import ResultsDialog from './components/ResultsDialog.vue';
@@ -24,6 +25,7 @@ import { useDatasetText } from './data/useDatasetText';
 import { useDataSource } from './data/useDataSource';
 import { useDescribeHit } from './data/describeHit';
 import { monthRange } from './data/monthRange';
+import { useFilters } from './data/useFilters';
 import { useGaps } from './data/useGaps';
 import { useMapMoment } from './data/useMapMoment';
 import { useHistoryView } from './data/useHistoryView';
@@ -45,6 +47,7 @@ const dataset = useDataset();
 const historyView = useHistoryView(dataset, history);
 const { gaps } = useGaps(sourceKind);
 const describe = useDescribeHit(dataset);
+const filters = useFilters(dataset.current, (request) => dataset.filter(request));
 const mapMoment = useMapMoment(dataset);
 // A month spans its calendar month, so a late start or an early end shows as a shaded gap (T2.6);
 // the whole history spans its coverage at every level (T2.5b).
@@ -194,6 +197,10 @@ onMounted(() => {
             :extent="chartExtent"
             :keep-view="dataset.source.value?.kind === 'history'"
             :gaps="gaps"
+            :brush-enabled="filters.enabled.value"
+            :brush="filters.time.value"
+            :dimmed-stations="filters.dimmedStations.value"
+            @brush="filters.time.value = $event"
             @frame="onFrame"
             @view="onView"
             @hover="mapMoment.onChartHover"
@@ -218,6 +225,21 @@ onMounted(() => {
           :moment="mapMoment.moment.value"
           :color-scale="colorScale"
           :format-time="formatTime"
+          :dimmed-stations="filters.dimmedStations.value"
+          @select="filters.toggleStation"
+        />
+        <FilterPanel
+          v-if="dataset.current.value"
+          :enabled="filters.enabled.value"
+          :active="filters.active.value"
+          :totals="filters.totals.value"
+          :result="filters.result.value"
+          :hour="filters.hour.value"
+          :fill="filters.fill.value"
+          :stations-picked="filters.stations.value?.length ?? 0"
+          @update:hour="filters.hour.value = $event"
+          @update:fill="filters.fill.value = $event"
+          @clear="filters.clear"
         />
         <PerfPanel
           :snapshot="perf.snapshot.value"

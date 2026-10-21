@@ -12,7 +12,11 @@ const props = defineProps<{
   colorScale: (t: number) => string;
   /** The chart's own time format, so the map writes a moment exactly as the chart's tooltip does. */
   formatTime: (t: number) => string;
+  /** One flag per station, 1 = filtered out (T3.4). */
+  dimmedStations?: Uint8Array | null;
 }>();
+
+const emit = defineEmits<{ select: [station: number | null] }>();
 
 const { t } = useI18n();
 
@@ -57,6 +61,8 @@ const describe = computed(() => {
         :label="caption"
         :describe="describe"
         :color-scale="colorScale"
+        :dimmed-stations="dimmedStations ?? null"
+        @select="emit('select', $event)"
       />
     </div>
     <p :class="classes.legend">
