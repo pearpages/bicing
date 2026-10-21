@@ -142,6 +142,18 @@ describe('HistogramChart', () => {
     expect(Number(selection?.getAttribute('width'))).toBeCloseTo(200, 6);
   });
 
+  test('the brush can be set before the chart has a size', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    hosts.push(host);
+    const chart = new HistogramChart(host, { bins: 4, label: 'Hours', tick: String });
+    expect(() => {
+      chart.setBrush([1, 2]);
+      chart.setBrush(null);
+    }).not.toThrow();
+    chart.destroy();
+  });
+
   test('setting the brush is not reported', () => {
     const { chart, brushed } = setup();
     chart.setBrush([0, 2]);

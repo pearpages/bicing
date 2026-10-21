@@ -101,6 +101,22 @@ const selectionX = (host: HTMLElement) =>
   Number(host.querySelector('.bp-chart__brush .selection')?.getAttribute('x'));
 
 describe('the time brush', () => {
+  test('can be set and switched on before the chart has a size', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    hosts.push(host);
+    const chart = new TimeSeriesChart(host, {
+      renderer: renderer(),
+      locale: testLocale('en'),
+      clock: manualClock().clock,
+    });
+    expect(() => {
+      chart.setBrushEnabled(true);
+      chart.setBrush([10, 20]);
+    }).not.toThrow();
+    expect(chart.brushRange).toEqual([10, 20]);
+  });
+
   test('shift + drag brushes a range of minutes, reported live and at the end', () => {
     const { chart, host, brushed } = setup();
     chart.setBrushEnabled(true);

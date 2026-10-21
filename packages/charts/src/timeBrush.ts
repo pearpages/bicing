@@ -51,6 +51,13 @@ export class TimeBrush {
         this.range = [toTime(selection[0]), toTime(selection[1])];
         this.onChange(this.range);
       });
+    // Attached now, not at the first resize: setting the brush before the chart has a size must
+    // work. The extent is a placeholder until then.
+    this.behavior.extent([
+      [0, 0],
+      [1, 1],
+    ]);
+    select(this.group).call(this.behavior);
   }
 
   get selection(): TimeRange | null {

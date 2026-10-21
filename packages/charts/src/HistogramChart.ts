@@ -136,6 +136,12 @@ export class HistogramChart {
       }
       if (event.type === 'end') this.placeBrush();
     });
+    // Attached now, not at the first resize, so setBrush works before the chart has a size.
+    this.brush.extent([
+      [0, 0],
+      [1, 1],
+    ]);
+    select(this.brushGroup).call(this.brush);
 
     this.scheduler = new FrameScheduler<'bars'>(() => {
       this.draw();
