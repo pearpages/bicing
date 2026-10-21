@@ -123,7 +123,10 @@ describe('stage + publish', () => {
       'observations-2026-08.parquet',
       'observations-2026-09.parquet',
       'observations.parquet',
+      'agg-1d.parquet',
+      'agg-1h-2026.parquet',
     ]);
+    expect(summary.files.map((f) => f.level)).toEqual(['raw', 'raw', 'raw', 'raw', '1d', '1h']);
     expect(await rows('observations-2026-08.parquet')).toEqual([
       [0, minute('2026-08-31T22:30:00Z'), 9],
       [2, minute('2026-08-31T22:30:00Z'), 1],
@@ -141,7 +144,32 @@ describe('stage + publish', () => {
       (a, b) => (a[1] ?? 0) - (b[1] ?? 0) || (a[0] ?? 0) - (b[0] ?? 0),
     );
     expect(merged).toEqual(sorted);
-    expect(summary.files.at(-1)).toMatchObject({ rows: 8, month: null });
+    expect(summary.files.find((f) => f.file === 'observations.parquet')).toMatchObject({
+      rows: 8,
+      month: null,
+    });
+  });
+
+  test('aggregates hold min, max, mean and count per station and UTC bucket', async () => {
+    const buckets = await withDuckDB(async (connection) => {
+      const reader = await connection.runAndReadAll(
+        `SELECT stationIdx, t, min, max, mean, count
+         FROM read_parquet(${sqlString(join(dir, 'parquet', 'agg-1h-2026.parquet'))})`,
+      );
+      return reader.getRows().map((row) => row.map((v) => asNumber(v ?? 0)));
+    });
+    expect(buckets).toEqual([
+      // July 10, 10:00 UTC: station 1 read 5 then 7 bikes; station 2 read 6 then 8.
+      [0, minute('2026-07-10T10:00:00Z'), 5, 7, 6, 2],
+      [1, minute('2026-07-10T10:00:00Z'), 6, 8, 7, 2],
+      [0, minute('2026-08-31T22:00:00Z'), 9, 9, 9, 1],
+      [2, minute('2026-08-31T22:00:00Z'), 1, 1, 1, 1],
+      [0, minute('2026-09-01T10:00:00Z'), 10, 10, 10, 1],
+      [2, minute('2026-09-01T10:00:00Z'), 2, 2, 2, 1],
+    ]);
+    const days = summary.files.find((f) => f.file === 'agg-1d.parquet');
+    // One bucket per station and UTC day with readings: 2 on Jul 10, 2 on Aug 31, 2 on Sep 1.
+    expect(days).toMatchObject({ level: '1d', rows: 6, t0: minute('2026-07-10T00:00:00Z') });
   });
 
   test('gaps.json names the missing month and the silences, detected from the snapshots', async () => {

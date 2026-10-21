@@ -142,10 +142,12 @@ async function build(rawDir: string, resources: readonly MonthlyResource[]): Pro
       console.log(`  ${line}`);
     },
   });
-  const merged = summary.files.at(-1);
+  const merged = summary.files.find((f) => f.file === 'observations.parquet');
+  const monthly = summary.files.filter((f) => f.month !== null).length;
+  const aggregates = summary.files.filter((f) => f.level !== 'raw').length;
   console.log(
     `${String(summary.stations)} stations, ${String(merged?.rows ?? 0)} readings in ` +
-      `${String(summary.files.length - 1)} monthly files + observations.parquet ` +
+      `${String(monthly)} monthly files + observations.parquet + ${String(aggregates)} aggregate files ` +
       `(${((merged?.bytes ?? 0) / 1e6).toFixed(0)} MB); ${String(summary.gaps.gaps.length)} gaps, ` +
       `missing months: ${summary.gaps.missingMonths.join(', ') || 'none'} → ${join(data, 'parquet')}`,
   );

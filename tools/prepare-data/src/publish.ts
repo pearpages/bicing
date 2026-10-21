@@ -1,8 +1,10 @@
-import { mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { DEFAULT_MAX_GAP_MINUTES } from '@bicing/core';
 import type { DuckDBConnection } from '@duckdb/node-api';
+import { writeAggregates } from './aggregates';
 import { asNumber, asNumberOrNull, scalar, sqlString, withDuckDB } from './duckdb';
+import { describe, type PublishedFile } from './published';
 import { gapReport, monthsBetween, monthStart, type GapReport } from './gaps';
 
 /**
@@ -10,14 +12,7 @@ import { gapReport, monthsBetween, monthStart, type GapReport } from './gaps';
  * one station table, per-UTC-month files built from staged neighbours, a merged file and gaps.json.
  */
 
-export interface PublishedFile {
-  readonly file: string;
-  readonly month: string | null;
-  readonly rows: number;
-  readonly bytes: number;
-  readonly t0: number | null;
-  readonly t1: number | null;
-}
+export type { PublishedFile } from './published';
 
 export interface PublishSummary {
   readonly stations: number;
@@ -63,27 +58,6 @@ async function writeStations(
   };
   await writeFile(join(out, 'stations.json'), `${JSON.stringify(json)}\n`);
   return rows.length;
-}
-
-async function describe(
-  connection: DuckDBConnection,
-  out: string,
-  file: string,
-  month: string | null,
-): Promise<PublishedFile> {
-  const path = join(out, file);
-  const reader = await connection.runAndReadAll(
-    `SELECT count(*), min(t), max(t) FROM read_parquet(${sqlString(path)})`,
-  );
-  const [rows, t0, t1] = reader.getRows()[0] ?? [];
-  return {
-    file,
-    month,
-    rows: Number(rows ?? 0),
-    bytes: (await stat(path)).size,
-    t0: asNumberOrNull(t0),
-    t1: asNumberOrNull(t1),
-  };
 }
 
 /** `staged` are the months in `stageDir`; `catalogue` is every month the catalogue lists. */
@@ -134,7 +108,7 @@ export async function publish(options: {
           QUALIFY row_number() OVER (PARTITION BY station_id, t) = 1
           ORDER BY t, stationIdx
         ) TO ${sqlString(join(outDir, file))} ${PARQUET}`);
-      files.push(await describe(connection, outDir, file, month));
+      files.push(await describe(connection, outDir, file, { level: 'raw', month }));
       log(`published ${file} (${String(files.at(-1)?.rows ?? 0)} rows)`);
     }
 
@@ -143,7 +117,10 @@ export async function publish(options: {
     await connection.run(
       `COPY (SELECT ${COLUMNS} FROM read_parquet(${list(monthly)})) TO ${sqlString(join(outDir, 'observations.parquet'))} ${PARQUET}`,
     );
-    files.push(await describe(connection, outDir, 'observations.parquet', null));
+    files.push(
+      await describe(connection, outDir, 'observations.parquet', { level: 'raw', month: null }),
+    );
+    files.push(...(await writeAggregates(connection, outDir, monthly, log)));
 
     // Coverage is the whole catalogue, so an unusable month at either end still counts as silence.
     const catalogue = [...new Set([...options.catalogue, ...staged])].sort();
