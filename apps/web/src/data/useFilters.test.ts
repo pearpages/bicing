@@ -1,7 +1,7 @@
 import type { FilterRequest, FilterResult, GeneratedDataset } from '@bicing/data';
 import { describe, expect, test } from 'vitest';
 import { effectScope, nextTick, shallowRef } from 'vue';
-import { useFilters } from './useFilters';
+import { FILTER_MEASURE, useFilters } from './useFilters';
 
 /** Only `generation` matters to the filters. */
 const dataset = (generation: number | null) => ({ generation }) as unknown as GeneratedDataset;
@@ -22,6 +22,7 @@ function fakeWorker() {
       stations: Uint32Array.from(stations),
       passing,
       rows: 100,
+      workerMs: 2,
     });
     return pending.request;
   };
@@ -67,6 +68,12 @@ describe('useFilters', () => {
     expect(Array.from(filters.dimmedStations.value ?? [])).toEqual([1, 0]);
     // The totals stay those of the unfiltered data.
     expect(Array.from(filters.totals.value?.hour ?? [])).toEqual([7]);
+    // Each answer is recorded as a User Timing measure, with the worker's share.
+    const measures = performance.getEntriesByName(
+      FILTER_MEASURE,
+      'measure',
+    ) as PerformanceMeasure[];
+    expect(measures.at(-1)?.detail).toEqual({ workerMs: 2 });
   });
 
   test('map clicks toggle stations; an empty-map click and "clear" reset', async () => {

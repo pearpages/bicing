@@ -162,6 +162,7 @@ describe('the client keeps one filter update in flight', () => {
         stations: new Uint32Array(0),
         passing,
         rows: 10,
+        workerMs: 1,
       };
       listener?.({
         data: { id: request.id, type: 'filtered', result },

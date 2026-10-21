@@ -2,6 +2,9 @@ import type { BinRange, TimeRange } from '@bicing/charts';
 import type { FilterRequest, FilterResult, GeneratedDataset } from '@bicing/data';
 import { computed, shallowRef, watch, type Ref } from 'vue';
 
+/** The User Timing measure each filter update records; a benchmark or DevTools can read it. */
+export const FILTER_MEASURE = 'bicing:filter';
+
 export interface FilterCounts {
   readonly hour: Uint32Array;
   readonly fill: Uint32Array;
@@ -41,6 +44,7 @@ export function useFilters(
   });
 
   function send(gen: number, onResult: (result: FilterResult) => void): void {
+    const sent = performance.now();
     const request: FilterRequest = {
       generation: gen,
       time: time.value,
@@ -51,7 +55,16 @@ export function useFilters(
     filter(request).then(
       (next) => {
         // Answers for a dataset that's since been replaced are dropped.
-        if (next.generation === generation.value) onResult(next);
+        if (next.generation !== generation.value) return;
+        onResult(next);
+        // Brush latency as User Timing (T3.7): from the brush move to its counts on the page,
+        // with the worker's share. A move that was overtaken waits for the newer answer, and
+        // that wait is part of what the person feels, so it's counted.
+        performance.measure(FILTER_MEASURE, {
+          start: sent,
+          end: performance.now(),
+          detail: { workerMs: next.workerMs },
+        });
       },
       (error: unknown) => {
         // A load overtook the request and the worker refused it: expected, nothing to show.

@@ -44,6 +44,11 @@ export interface FilterResult {
   readonly passing: number;
   /** Rows taking part: in-service readings of stations with a capacity. */
   readonly rows: number;
+  /**
+   * Time spent in the worker on this update, including building the indexes on the first one
+   * (T3.7). The page measures the round trip itself.
+   */
+  readonly workerMs: number;
 }
 
 const DIM = { hour: 0, fill: 1, station: 2 } as const;
@@ -114,6 +119,7 @@ export class FilterState {
 
   /** Applies every filter (unchanged ones cost nothing) and reads the counts. */
   apply(request: FilterRequest): FilterResult {
+    const started = performance.now();
     this.crossfilter ??= this.build();
     const cf = this.crossfilter;
     // Rows are in time order: the time brush is a row range, found by binary search.
@@ -139,6 +145,7 @@ export class FilterState {
       stations: cf.groupCounts().slice(),
       passing: cf.passing(),
       rows: cf.rows,
+      workerMs: performance.now() - started,
     };
   }
 }
