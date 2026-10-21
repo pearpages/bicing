@@ -241,6 +241,14 @@ Public URL: `https://bicing.soms.cat` (host still to be chosen, tasks.md A9). Vi
 `Cross-Origin-Embedder-Policy: credentialless` (memory API, later SharedArrayBuffer). Parquet comes from a
 configurable external base URL with CORS + range requests (Phase 2).
 
+## Testing
+
+- **Unit and property tests** (Vitest, `pnpm test -- --run`): every package. Core algorithms get fast-check
+  properties (P18); the DOM-facing packages run in jsdom.
+- **Browser tests** (Playwright, `pnpm e2e`, ADR 0016): the built app on `vite preview`, headless Chromium with
+  software WebGL2, synthetic data. They drive the brushes, the map and "clear filters" end to end. CI runs them in
+  their own job.
+
 ## Decision records
 
 See `docs/adr/`. Any change to this file that has trade-offs gets an ADR.
