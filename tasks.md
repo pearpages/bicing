@@ -29,9 +29,20 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [x] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
 - [x] **T2.8** Benchmarks on real data: time to first chart for 1 month and 1 year, recorded in the README.
 
-### Phase 3 — Linked views (to be broken down later)
+### Phase 3 — Linked views
 
-- [ ] histograms · bitset crossfilter in a worker · map time scrubber · Playwright brushing tests · final benchmarks.
+Brushing one view filters the others, over the raw readings a view has loaded (synthetic data or a real month; the
+aggregate levels of the whole history aren't filtered). Budget: no main-thread task over 50 ms while brushing
+(architecture.md > Performance budgets). Check versions before adding anything (P25).
+
+- [ ] **T3.0** ADR: the crossfilter. Which dimensions (time, hour of day, occupancy, station); one bitset per dimension in the data worker with incremental updates on each brush move; what crosses threads (histogram counts and a per-station selection, transferred, versus a `SharedArrayBuffer` mask, ADR 0005); and what the chart and map do with a selection (dim the rest). _Done when:_ the owner accepts it.
+- [ ] **T3.1** core: bitset operations (set a range, AND, popcount) and a per-dimension sorted index, so a range filter is one contiguous run of rows. Examples and fast-check properties (P18). _Done when:_ a range filter over 10M rows updates its bitset in under 16 ms in Node, measured.
+- [ ] **T3.2** data: the crossfilter in the worker. It keeps the loaded columns, applies filters, and answers with each dimension's histogram counted under the _other_ filters (crossfilter semantics) plus the selected stations. _Done when:_ tests check the counts against a brute-force filter, and a brush update on a real month (4.4M rows) takes under 16 ms in the worker.
+- [ ] **T3.3** charts: an x brush on the time series (`d3-brush`), and a `HistogramChart` controller (D3 scales and axis, Canvas bars, its own brush) for hour of day and occupancy. _Done when:_ jsdom tests drive both brushes and the bars follow new counts.
+- [ ] **T3.4** web: the linked layout. The time series, two histograms and the map; brushing any of them filters the rest, the chart and map dim what's filtered out, and there's a "clear filters" action, in both languages. _Done when:_ brushing works in the browser on a real month with no long task over 50 ms, measured.
+- [ ] **T3.5** web: a map time scrubber. A slider (and play) for the map's moment, alongside the crosshair it follows today (T2.7). _Done when:_ scrubbing a month redraws the map at 60 fps.
+- [ ] **T3.6** Playwright brushing tests against `vite preview` on synthetic data (CI has no real data), run in CI. _Done when:_ CI runs them green.
+- [ ] **T3.7** Final benchmarks: brush latency (worker update and main-thread frame) on 1M and 10M synthetic readings and a real month, recorded in the README with the method (P5). _Done when:_ the README table is in.
 
 ### Discovered
 
