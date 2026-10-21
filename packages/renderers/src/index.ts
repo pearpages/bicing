@@ -1,6 +1,8 @@
 export { CanvasRenderer } from './canvas/CanvasRenderer';
 export type { CanvasRendererOptions } from './canvas/CanvasRenderer';
 export { backingStoreSize, resizeCanvas } from './dpr';
+export { WebGLPointRenderer } from './points/PointRenderer';
+export type { PointRenderer, PointRendererOptions } from './points/PointRenderer';
 export { projectionFor } from './projection';
 export type { Projection } from './projection';
 export { SvgRenderer } from './svg/SvgRenderer';
