@@ -22,6 +22,9 @@ export function monthFile(month: string): string {
 
 export type Level = 'raw' | '1h' | '1d';
 
+/** Bucket sizes of ADR 0014's aggregate levels, in minutes: also each level's gap threshold. */
+export const BUCKET_MINUTES = { '1h': 60, '1d': 1_440 } as const;
+
 /** One published file, as `manifest.json` describes it (T2.3, T2.5a). */
 export interface CatalogFile {
   readonly file: string;

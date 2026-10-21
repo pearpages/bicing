@@ -14,7 +14,14 @@ export {
 export type { DecodedAggregates, DecodedColumns, DecodeParquet } from './columns';
 export { loadMonths } from './load';
 export type { LoadDeps, LoadOptions } from './load';
-export { fetchManifest, isMonth, monthFile, parseCatalog, parseManifest } from './manifest';
+export {
+  BUCKET_MINUTES,
+  fetchManifest,
+  isMonth,
+  monthFile,
+  parseCatalog,
+  parseManifest,
+} from './manifest';
 export type { CatalogFile, Level, MonthEntry } from './manifest';
 export { createViewLoader } from './view';
 export type { ViewColumns, ViewOptions, ViewResult } from './view';

@@ -17,7 +17,7 @@ import {
   type DecodedColumns,
 } from './columns';
 import { fetchOk, type LoadDeps } from './load';
-import { parseCatalog, type CatalogFile, type Level } from './manifest';
+import { BUCKET_MINUTES, parseCatalog, type CatalogFile, type Level } from './manifest';
 import { parseStations } from './stations';
 
 /** One level of the whole history over a window (T2.5b, ADR 0014). */
@@ -110,15 +110,17 @@ export function createViewLoader(deps: LoadDeps): (options: ViewOptions) => Prom
     if (!Number.isFinite(first) || !Number.isFinite(last))
       throw new Error('manifest.json lists no data');
 
+    // A bucket is stamped with its start, so the one that overlaps t0 starts up to a bucket earlier.
+    const from = level === 'raw' ? t0 : Math.max(0, t0 - BUCKET_MINUTES[level] + 1);
     // The files of this level that overlap the window, oldest first.
     const wanted = catalogue
       .filter((f) => (level === 'raw' ? f.level === 'raw' && f.month !== null : f.level === level))
-      .filter((f) => f.t0 !== null && f.t1 !== null && f.t0 < t1 && f.t1 >= t0)
+      .filter((f) => f.t0 !== null && f.t1 !== null && f.t0 < t1 && f.t1 >= from)
       .sort((a, b) => (a.t0 ?? 0) - (b.t0 ?? 0));
     const decoded = await Promise.all(wanted.map((f) => decode(baseUrl, f, stations.length)));
     // Each file is sorted by t, so the window is one contiguous slice of it (P4).
     const slice = <C extends Decoded>(columns: C): C => {
-      const start = lowerBound(columns.t, t0);
+      const start = lowerBound(columns.t, from);
       const end = lowerBound(columns.t, t1, start);
       const out: Record<string, unknown> = {};
       for (const [name, values] of Object.entries(columns))

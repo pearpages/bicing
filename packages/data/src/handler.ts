@@ -8,15 +8,13 @@ import {
 import { generate } from '@bicing/synthetic';
 import { loadMonths, type LoadDeps } from './load';
 import { transferList, type ViewInfo, type WorkerRequest, type WorkerResponse } from './protocol';
+import { BUCKET_MINUTES } from './manifest';
 import { createViewLoader } from './view';
 
 export interface HandledResponse {
   readonly response: WorkerResponse;
   readonly transfer: ArrayBuffer[];
 }
-
-/** Bucket sizes of ADR 0014's levels, in minutes: also each level's gap threshold. */
-const BUCKET_MINUTES = { '1h': 60, '1d': 1_440 } as const;
 
 interface Built {
   readonly observations: ObservationColumns | null;

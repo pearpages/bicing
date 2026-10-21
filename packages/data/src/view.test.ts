@@ -132,6 +132,17 @@ describe('createViewLoader', () => {
     expect(Array.from(result.columns.aggregates.max)).toEqual([4, 6]);
   });
 
+  test('a window that starts mid-bucket includes that bucket', async () => {
+    const load = createViewLoader({ decode, fetch: host(files()).fetchImpl });
+    // 70 falls inside the hour stamped 60; 30 inside the first day, stamped 0.
+    const hours = await load({ baseUrl: BASE, level: '1h', t0: 70, t1: 240 });
+    const days = await load({ baseUrl: BASE, level: '1d', t0: 30, t1: 2 * DAY });
+    if (hours.columns.level === 'raw' || days.columns.level === 'raw')
+      throw new Error('expected aggregates');
+    expect(Array.from(hours.columns.aggregates.t)).toEqual([60, 180]);
+    expect(Array.from(days.columns.aggregates.t)).toEqual([0, 0, DAY]);
+  });
+
   test('keeps decoded files: zooming back does not fetch them again', async () => {
     const { fetchImpl, fetched } = host(files());
     const load = createViewLoader({ decode, fetch: fetchImpl });
