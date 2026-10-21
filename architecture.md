@@ -89,6 +89,23 @@ synthetic data (ADR 0005, ADR 0013). The chart can't tell the two sources apart.
 preview`, a Vite plugin serves `data/parquet` at `/data/` with range support; in production the files live on an
 external host with CORS.
 
+### Whole history: the level follows the view (T2.5b, ADR 0014)
+
+"Tot l'historial" opens on the 1-day level for the whole coverage. When the visible span settles (200 ms after the
+last zoom or pan), the app picks the level the span needs and asks the worker for a window of it:
+
+- **Level:** raw readings up to a 7-day span, 1 hour up to 60 days, 1 day beyond. Each keeps a loaded window under
+  about 5M points.
+- **Window:** the visible range plus one span on each side, clamped to the coverage, so a small pan doesn't refetch.
+  A new request is made only when the level changes or the view leaves the window.
+- **Worker:** a `view` request (`level`, `window`) finds the files from `manifest.json` (names checked against the
+  three patterns T2.3 writes). It decodes them, keeping the last 4 decoded files for zooming back and forth, slices
+  each to the window by binary search on `t`, and builds the series: `buildStationSeries` for raw data, and
+  `buildAggregateSeries` (core) for buckets, as min/max pairs with a one-bucket gap threshold. Every buffer is
+  transferred.
+- **Chart:** `setData(series, { extent, keepView })` replaces the lines without touching the zoom. The extent is
+  the whole coverage, not the loaded data, so the zoom limits stay the same at every level.
+
 ## Chart anatomy
 
 Each chart is a framework-agnostic controller in `@bicing/charts` that owns this DOM inside a host element:
