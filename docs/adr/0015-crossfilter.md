@@ -72,6 +72,18 @@ The incremental version needs indexes: 18 ms and 36 MB to build at 4.5M rows, 33
   but there's no per-point highlight.
 - (−) More code than a full scan: three update paths (bins, time runs, station set) instead of one loop.
 
+## Update (T3.2, 2026-10-21)
+
+Measured once the engine ran in the worker's code on a real month (2026-09, 4,443,182 rows taking part):
+
+- **Memory:** the worker keeps time (4 bytes), station (2), occupancy (1) and hour (1) per row, plus the mask (1) and
+  three bin indexes (hour, occupancy, station: 12). That's about **21 bytes a row, ~93 MB for a month**, not the 13
+  bytes estimated above, which left out the time column and the station index.
+- **When the cost is paid:** deriving the rows happens at load (28 ms). The indexes are built on the **first filter
+  request** (90 ms, in the worker), so a load doesn't pay for brushing nobody does.
+- **Brush updates:** an occupancy drag takes 11.1 ms p99, an hour drag 3.3 ms and a time drag 0.57 ms, all under the
+  16 ms target.
+
 ## Alternatives considered
 
 - **Full scan per brush move:** one loop and no indexes, but 21 ms at 4.5M and 47 ms at 10M (measured), over T3.2's
