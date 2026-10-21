@@ -21,6 +21,8 @@ const props = withDefaults(
     colorScale?: (t: number) => string;
     alpha?: number;
     locale: ChartLocale;
+    extent?: readonly [number, number];
+    keepView?: boolean;
     describe?: (hit: Hit, format: ChartFormat) => readonly string[];
   }>(),
   {
@@ -44,6 +46,8 @@ const chart = useTimeSeriesChart(host, {
   colorScale: toRef(props, 'colorScale'),
   alpha: toRef(props, 'alpha'),
   locale: toRef(props, 'locale'),
+  extent: toRef(props, 'extent'),
+  keepView: toRef(props, 'keepView'),
   ...(props.describe ? { describe: props.describe } : {}),
   onFrame: (report) => {
     emit('frame', report);

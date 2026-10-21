@@ -298,6 +298,34 @@ describe('TimeSeriesChart', () => {
     expect(fake.uploads).toHaveLength(1);
   });
 
+  test('setData with an extent and keepView swaps data without moving the view', () => {
+    const { chart, fake, frame } = setup();
+    const coarse = dataset(2_000, 60);
+    const extent = [coarse.xMin, coarse.xMax] as const;
+    chart.setData(coarse, { extent });
+    frame();
+    const view = [coarse.xMin + 1_000, coarse.xMin + 3_000] as const;
+    chart.zoomTo(view);
+    // A finer level for just the visible window: the zoom limits stay the coverage's.
+    const fine = dataset(2_000, 1);
+    chart.setData(fine, { extent, keepView: true });
+    frame();
+    expect(chart.domain[0]).toBeCloseTo(view[0], 6);
+    expect(chart.domain[1]).toBeCloseTo(view[1], 6);
+    expect(chart.extent).toEqual(extent);
+    expect(fake.uploads.at(-1)?.x.length).toBe(fine.x.length);
+  });
+
+  test('without keepView, new data resets the zoom to its extent', () => {
+    const { chart } = setup();
+    const series = dataset(2_000, 60);
+    chart.setData(series);
+    chart.zoomTo([series.xMin + 1_000, series.xMin + 3_000]);
+    chart.setData(dataset(2_000, 60));
+    expect(chart.domain[0]).toBeCloseTo(series.xMin, 6);
+    expect(chart.domain[1]).toBeCloseTo(series.xMax, 6);
+  });
+
   test('destroy removes the DOM and stops drawing', () => {
     const { chart, host, fake, frame } = setup();
     chart.setData(dataset(5_000));

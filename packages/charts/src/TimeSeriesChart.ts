@@ -169,11 +169,20 @@ export class TimeSeriesChart {
     this.watchDevicePixelRatio();
   }
 
-  /** New dataset. Resets the zoom to the full extent. */
-  setData(series: StationSeries | null): void {
+  /**
+   * New dataset. By default the zoom resets to the data's extent. A whole-history view (T2.5b)
+   * passes the coverage as `extent`, so the zoom limits don't depend on the window loaded, and
+   * `keepView` to swap levels without moving the view.
+   */
+  setData(
+    series: StationSeries | null,
+    options: { readonly extent?: Domain; readonly keepView?: boolean } = {},
+  ): void {
+    const keep = options.keepView && this.width > 0 && this.series ? this.domain : null;
     this.series = series;
     this.full = series ? fullLines(series) : EMPTY_LINES;
-    this.fullDomain = series && series.xMax > series.xMin ? [series.xMin, series.xMax] : [0, 1];
+    this.fullDomain =
+      options.extent ?? (series && series.xMax > series.xMin ? [series.xMin, series.xMax] : [0, 1]);
     this.uploaded = null;
     this.uploadedKey = null;
     if (!series) {
@@ -182,7 +191,8 @@ export class TimeSeriesChart {
       for (const g of [this.dom.xAxis, this.dom.yAxis, this.dom.grid]) g.replaceChildren();
     }
     this.updateZoomExtents();
-    this.zoomBehavior.transform(select(this.dom.overlay), zoomIdentity);
+    if (keep) this.zoomTo(keep);
+    else this.zoomBehavior.transform(select(this.dom.overlay), zoomIdentity);
     this.scheduler.invalidate('data', 'axes');
   }
 

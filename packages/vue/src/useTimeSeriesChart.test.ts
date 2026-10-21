@@ -8,6 +8,7 @@ import { useTimeSeriesChart } from './useTimeSeriesChart';
 // The real controller needs a GPU. This records what the composable hands it.
 const calls = vi.hoisted(() => ({
   setData: [] as unknown[],
+  dataOptions: [] as unknown[],
   setRenderer: [] as string[],
   setDecimation: [] as string[],
   setLocale: [] as string[],
@@ -17,8 +18,9 @@ const calls = vi.hoisted(() => ({
 vi.mock('@bicing/charts', () => ({
   createRenderer: (kind: string) => ({ kind }),
   TimeSeriesChart: class {
-    setData(series: unknown) {
+    setData(series: unknown, options: unknown) {
       calls.setData.push(series);
+      calls.dataOptions.push(options);
     }
     setRenderer(renderer: { kind: string }) {
       calls.setRenderer.push(renderer.kind);
@@ -79,6 +81,8 @@ function harness(data: Ref<StationSeries | null>) {
   const renderer = ref<'svg' | 'canvas' | 'webgl'>('webgl');
   const decimation = ref<'none' | 'minmax' | 'lttb'>('none');
   const locale = shallowRef(fakeLocale('ca'));
+  const extent = shallowRef<readonly [number, number] | undefined>(undefined);
+  const keepView = ref(false);
   const component = defineComponent({
     setup() {
       const host = ref<HTMLElement | null>(null);
@@ -88,15 +92,18 @@ function harness(data: Ref<StationSeries | null>) {
         decimation,
         colorScale: ref(() => '#000'),
         locale,
+        extent,
+        keepView,
       });
       return () => h('div', { ref: host });
     },
   });
-  return { wrapper: mount(component), renderer, decimation, locale };
+  return { wrapper: mount(component), renderer, decimation, locale, extent, keepView };
 }
 
 beforeEach(() => {
   calls.setData.length = 0;
+  calls.dataOptions.length = 0;
   calls.setRenderer.length = 0;
   calls.setDecimation.length = 0;
   calls.setLocale.length = 0;
@@ -135,6 +142,17 @@ describe('useTimeSeriesChart', () => {
     expect(calls.setRenderer).toEqual(['canvas']);
     expect(calls.setDecimation).toEqual(['minmax']);
     expect(calls.setLocale).toEqual(['en']);
+  });
+
+  test('passes the extent and keepView along with new data (T2.5b)', async () => {
+    const data = shallowRef<StationSeries | null>(series());
+    const { extent, keepView } = harness(data);
+    expect(calls.dataOptions[0]).toEqual({ keepView: false });
+    extent.value = [0, 100];
+    keepView.value = true;
+    data.value = series();
+    await nextTick();
+    expect(calls.dataOptions[1]).toEqual({ extent: [0, 100], keepView: true });
   });
 
   test('destroys the controller on unmount', () => {

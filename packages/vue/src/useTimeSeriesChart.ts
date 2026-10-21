@@ -26,6 +26,10 @@ export interface UseTimeSeriesChartOptions {
   readonly decimation: Readonly<Ref<Decimation>>;
   readonly colorScale: Readonly<Ref<(t: number) => string>>;
   readonly locale: Readonly<Ref<ChartLocale>>;
+  /** The zoom extent when it isn't the data's own: a whole-history view's coverage (T2.5b). */
+  readonly extent?: Readonly<Ref<readonly [number, number] | undefined>>;
+  /** New data keeps the current view instead of resetting the zoom (T2.5b). */
+  readonly keepView?: Readonly<Ref<boolean | undefined>>;
   /** Line opacity, applied when a renderer is created. */
   readonly alpha?: Readonly<Ref<number | undefined>>;
   readonly describe?: (hit: Hit, format: ChartFormat) => readonly string[];
@@ -48,6 +52,11 @@ export function useTimeSeriesChart(
   options: UseTimeSeriesChartOptions,
 ): ShallowRef<TimeSeriesChart | null> {
   const chart = shallowRef<TimeSeriesChart | null>(null);
+  const dataOptions = () => {
+    const extent = options.extent?.value;
+    const keepView = options.keepView?.value ?? false;
+    return extent === undefined ? { keepView } : { extent, keepView };
+  };
   const settings = () => {
     const alpha = options.alpha?.value;
     return alpha === undefined ? {} : { alpha };
@@ -68,11 +77,11 @@ export function useTimeSeriesChart(
     if (options.onFrame) instance.onFrame(options.onFrame);
     if (options.onHover) instance.onHover(options.onHover);
     if (options.onView) instance.onView(options.onView);
-    instance.setData(rawSeries(options.series.value));
+    instance.setData(rawSeries(options.series.value), dataOptions());
     chart.value = instance;
   });
 
-  watch(options.series, (series) => chart.value?.setData(rawSeries(series)));
+  watch(options.series, (series) => chart.value?.setData(rawSeries(series), dataOptions()));
   watch(options.renderer, (kind) => chart.value?.setRenderer(createRenderer(kind, settings())));
   watch(options.decimation, (decimation) => chart.value?.setDecimation(decimation));
   watch(options.colorScale, (colorScale) => chart.value?.setColorScale(colorScale));
