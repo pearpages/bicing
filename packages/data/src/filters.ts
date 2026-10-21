@@ -11,6 +11,12 @@ import {
 export const HOUR_BINS = 24;
 export const FILL_BINS = 20;
 
+/**
+ * The largest dataset the crossfilter takes (ADR 0015): ~21 bytes a row, so 10M rows is ~210 MB in
+ * the worker. The 50M stress tier stays unfiltered rather than risk the tab.
+ */
+export const MAX_FILTER_ROWS = 10_000_000;
+
 type Range = readonly [number, number];
 
 /** What the page asks for after each brush move; `null` means "not filtered". */

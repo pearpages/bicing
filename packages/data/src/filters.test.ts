@@ -110,6 +110,20 @@ describe('filter requests in the worker', () => {
     expect(transfer).toHaveLength(3);
   });
 
+  test('a dataset over the limit gets no crossfilter, so the page hides the brushes', async () => {
+    const limited = createHandler(
+      {
+        decode: () => Promise.reject(new Error('no decoder')),
+        fetch: () => Promise.reject(new Error('no network')),
+      },
+      1_000,
+    );
+    const small = await limited({ id: 1, type: 'generate', options: { seed: 1, rows: 1_000 } });
+    const big = await limited({ id: 2, type: 'generate', options: { seed: 1, rows: 1_001 } });
+    expect(small.response).toMatchObject({ type: 'dataset', generation: 1 });
+    expect(big.response).toMatchObject({ type: 'dataset', generation: null });
+  });
+
   test('filters for an older dataset are refused, not answered with the new one', async () => {
     const first = await handle({ id: 1, type: 'generate', options: { seed: 1, rows: 1_000 } });
     await handle({ id: 2, type: 'generate', options: { seed: 2, rows: 1_000 } });

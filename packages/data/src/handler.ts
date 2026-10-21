@@ -8,7 +8,7 @@ import {
 import { generate } from '@bicing/synthetic';
 import { loadMonths, type LoadDeps } from './load';
 import { transferList, type ViewInfo, type WorkerRequest, type WorkerResponse } from './protocol';
-import { FilterState } from './filters';
+import { FilterState, MAX_FILTER_ROWS } from './filters';
 import { BUCKET_MINUTES } from './manifest';
 import { createViewLoader } from './view';
 
@@ -40,6 +40,8 @@ const copyStations = (stations: StationTable): StationTable => ({
  */
 export function createHandler(
   deps: LoadDeps,
+  /** Tests lower it; nothing else should. */
+  maxFilterRows = MAX_FILTER_ROWS,
 ): (request: WorkerRequest) => Promise<HandledResponse> {
   const loadView = createViewLoader(deps);
   // The crossfilter of the latest raw dataset, kept in the worker (ADR 0015). Each dataset gets a
@@ -105,7 +107,10 @@ export function createHandler(
       const { observations, stations, series, rows, view } = await build(request);
       // Built before the transfer below hands the columns to the page; it keeps its own copies.
       generation += 1;
-      filters = observations ? new FilterState(observations, stations, generation) : null;
+      filters =
+        observations && observations.length <= maxFilterRows
+          ? new FilterState(observations, stations, generation)
+          : null;
       const elapsedMs = performance.now() - started;
       return {
         response: {
