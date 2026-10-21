@@ -367,6 +367,22 @@ describe('TimeSeriesChart', () => {
     expect(host.querySelector('.bp-chart__marker')?.getAttribute('visibility')).toBe('inherit');
   });
 
+  test('a gap too narrow to aim at is shaded but does not take over the tooltip', () => {
+    const { chart, host, frame } = setup();
+    const series = dataset(2_000);
+    chart.setData(series);
+    const mid = (series.xMin + series.xMax) / 2;
+    // The plot is 400 px wide: a 2-minute gap here is well under 4 px.
+    chart.setGaps([{ t0: mid - 1, t1: mid + 1 }]);
+    frame();
+    expect(host.querySelectorAll('.bp-chart__gap')).toHaveLength(1);
+    host
+      .querySelector('.bp-chart__overlay')
+      ?.dispatchEvent(new MouseEvent('pointermove', { clientX: 200, clientY: 100, bubbles: true }));
+    frame();
+    expect(host.querySelector('.bp-chart__tooltip-text')?.textContent).toMatch(/^Station \d+/);
+  });
+
   test('destroy removes the DOM and stops drawing', () => {
     const { chart, host, fake, frame } = setup();
     chart.setData(dataset(5_000));

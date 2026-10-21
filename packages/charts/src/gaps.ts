@@ -14,6 +14,11 @@ export interface GapPeriod {
 const SVG_NS = 'http://www.w3.org/2000/svg';
 /** A 15-minute gap is far below a pixel over years; it still gets a hairline. */
 const MIN_WIDTH_PX = 1;
+/**
+ * Narrower than this on screen, a gap can't be aimed at, so hovering there still picks a station
+ * (an 11-hour gap is a fifth of a pixel across the whole history).
+ */
+export const MIN_HOVER_PX = 4;
 
 /** Sorted by start, so lookups can binary-search. */
 export function sortGaps(gaps: readonly GapPeriod[]): readonly GapPeriod[] {

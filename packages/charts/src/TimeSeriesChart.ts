@@ -15,7 +15,7 @@ import {
   type ZoomBehavior,
   type ZoomTransform,
 } from 'd3-zoom';
-import { drawGaps, gapAt, gapLines, sortGaps, type GapPeriod } from './gaps';
+import { drawGaps, gapAt, gapLines, MIN_HOVER_PX, sortGaps, type GapPeriod } from './gaps';
 import { createChartDom, type ChartDom } from './layers';
 import { chartFormat, type ChartFormat, type ChartLocale } from './locale';
 import { pickAt, type Hit } from './picking';
@@ -360,7 +360,9 @@ export class TimeSeriesChart {
       ? domain[0] + (pointerAt[0] / this.width) * (domain[1] - domain[0])
       : 0;
     // Inside a gap there's no reading to pick; the tooltip explains the gap instead.
-    const gap = active ? gapAt(this.gaps, pointerT) : null;
+    const inside = active ? gapAt(this.gaps, pointerT) : null;
+    const pxPerMinute = this.width / (domain[1] - domain[0]);
+    const gap = inside && (inside.t1 - inside.t0) * pxPerMinute >= MIN_HOVER_PX ? inside : null;
     const hit =
       series && pointerAt && active && !gap
         ? pickAt(
