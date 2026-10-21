@@ -73,7 +73,10 @@ uploads. All data is generated in a Web Worker from a seed.
 - pnpm 12 runs dependency install scripts only when they're listed in `allowBuilds`.
 - `autoInstallPeers: false` keeps optional peers from being pulled in unasked.
 - Look up the current stable version before adding a dependency (P25). Prefer individual `d3-*` modules (P3).
-- CI actions (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node`) are pinned to major tags, not commit SHAs.
+- CI actions (`actions/checkout`, `pnpm/action-setup`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`)
+  are pinned to major tags, not commit SHAs.
+- The browser tests (ADR 0016) download Chromium from Playwright's CDN in CI, cached per Playwright version. Their
+  report is uploaded only when they fail, and holds screenshots of synthetic data only.
 
 ## Known risks
 

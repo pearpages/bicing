@@ -6,5 +6,5 @@
     // vite.config.ts imports serve-data.ts with its extension, as Vite's native config loader requires.
     "allowImportingTsExtensions": true
   },
-  "include": ["src", "vite.config.ts", "serve-data.ts"]
+  "include": ["src", "e2e", "vite.config.ts", "serve-data.ts", "playwright.config.ts"]
 }

@@ -8,3 +8,7 @@ coverage
 
 # Benchmark results belong to the machine that ran them (P5); the README records them.
 bench-results/
+
+# Playwright output (ADR 0016)
+/apps/web/playwright-report/
+/apps/web/test-results/

@@ -41,6 +41,8 @@ if `node -v` doesn't print v24.
 - `pnpm install` · `pnpm dev` (apps/web) · `pnpm build`
 - `pnpm run lint` · `pnpm run typecheck` (root tsc + `pnpm -r typecheck`, vue-tsc for apps/web) · `pnpm run format`
 - `pnpm test -- --run` (never bare `pnpm test`: that's watch mode)
+- `pnpm e2e`: builds, then runs the Playwright browser tests on `vite preview` (ADR 0016). First time:
+  `pnpm --filter @bicing/web exec playwright install chromium`.
 - `docker build -t bicing-pulse .`. The local runtime is colima (`colima start`), with no buildx, so keep the Dockerfile
   free of BuildKit-only syntax.
 

@@ -26,3 +26,37 @@ jobs:
       - run: pnpm run typecheck
       - run: pnpm test -- --run
       - run: pnpm run build
+
+  # Browser tests on the built app (ADR 0016), in parallel with the checks.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Playwright version
+        id: playwright
+        run: echo "version=$(pnpm --filter @bicing/web exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      # The browser is ~100 MB: cached per Playwright version. Its system libraries aren't cached.
+      - uses: actions/cache@v6
+        id: browsers
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm --filter @bicing/web exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm --filter @bicing/web exec playwright install-deps chromium
+      - run: pnpm e2e
+        env:
+          CI: true
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report/
+          retention-days: 7
