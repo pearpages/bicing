@@ -60,6 +60,7 @@ function generated(id: number, rows: number): WorkerResponse {
     series,
     rows,
     view: null,
+    generation: null,
     elapsedMs: 1,
   };
 }

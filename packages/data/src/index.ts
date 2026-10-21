@@ -12,6 +12,8 @@ export {
   validateColumns,
 } from './columns';
 export type { DecodedAggregates, DecodedColumns, DecodeParquet } from './columns';
+export { FILL_BINS, FilterState, HOUR_BINS } from './filters';
+export type { FilterRequest, FilterResult } from './filters';
 export { fetchGaps, parseGaps } from './gaps';
 export type { GapCatalog } from './gaps';
 export { loadMonths } from './load';

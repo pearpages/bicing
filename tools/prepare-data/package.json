@@ -11,6 +11,7 @@
     "prepare-data": "tsx src/cli.ts"
   },
   "devDependencies": {
+    "@bicing/data": "workspace:*",
     "@types/node": "24.13.6",
     "fast-check": "4.10.2",
     "tsx": "4.23.15",

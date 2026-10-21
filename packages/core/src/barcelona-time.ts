@@ -33,6 +33,8 @@ export function barcelonaHours(
 ): Uint8Array {
   let summerStart = 0;
   let summerEnd = 0;
+  // A local, not the imported name, in the per-row loop (see FilterState in @bicing/data).
+  const day = MINUTES_PER_DAY;
   let nextYear = Number.NEGATIVE_INFINITY;
   let yearStart = Number.POSITIVE_INFINITY;
   for (let i = 0; i < times.length; i++) {
@@ -45,7 +47,7 @@ export function barcelonaHours(
       nextYear = toMinutes(Date.UTC(year + 1, 0, 1));
     }
     const local = t + (t >= summerStart && t < summerEnd ? CEST : CET);
-    out[i] = Math.floor((((local % MINUTES_PER_DAY) + MINUTES_PER_DAY) % MINUTES_PER_DAY) / 60);
+    out[i] = Math.floor((((local % day) + day) % day) / 60);
   }
   return out;
 }

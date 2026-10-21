@@ -1,5 +1,6 @@
 import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
+import type { FilterRequest, FilterResult } from './filters';
 import type { LoadOptions } from './load';
 import type { Level } from './manifest';
 import type { ViewOptions } from './view';
@@ -22,7 +23,9 @@ export type WorkerRequest =
   /** Real data: Parquet months from a base URL (ADR 0013). */
   | { readonly id: number; readonly type: 'load'; readonly options: LoadOptions }
   /** One level of the whole history over a window (T2.5b, ADR 0014). */
-  | { readonly id: number; readonly type: 'view'; readonly options: ViewOptions };
+  | { readonly id: number; readonly type: 'view'; readonly options: ViewOptions }
+  /** Brush positions for the latest raw dataset's crossfilter (T3.2, ADR 0015). */
+  | { readonly id: number; readonly type: 'filter'; readonly filters: FilterRequest };
 
 export type WorkerResponse =
   | {
@@ -35,9 +38,15 @@ export type WorkerResponse =
       /** Readings, or buckets for an aggregate view. */
       readonly rows: number;
       readonly view: ViewInfo | null;
+      /**
+       * Identifies this dataset's crossfilter for `filter` requests, or `null` when it has none
+       * (aggregate levels, ADR 0015).
+       */
+      readonly generation: number | null;
       /** Time spent generating or loading inside the worker, excluding the postMessage hop. */
       readonly elapsedMs: number;
     }
+  | { readonly id: number; readonly type: 'filtered'; readonly result: FilterResult }
   | { readonly id: number; readonly type: 'error'; readonly message: string };
 
 /**
