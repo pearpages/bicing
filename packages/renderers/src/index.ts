@@ -7,7 +7,7 @@ export { projectionFor } from './projection';
 export type { Projection } from './projection';
 export { SvgRenderer } from './svg/SvgRenderer';
 export type { SvgRendererOptions } from './svg/SvgRenderer';
-export { EMPTY_LINES } from './types';
+export { DIM_ALPHA, EMPTY_LINES } from './types';
 export { WebGLRenderer } from './webgl/WebGLRenderer';
 export type { WebGLRendererOptions } from './webgl/WebGLRenderer';
 export type { LineSeriesData, Renderer, RendererKind, RenderStats, Viewport } from './types';

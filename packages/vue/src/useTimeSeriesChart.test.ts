@@ -29,6 +29,7 @@ vi.mock('@bicing/charts', () => ({
       calls.setDecimation.push(decimation);
     }
     setColorScale = () => undefined;
+    setDimmed = () => undefined;
     setGaps = () => undefined;
     setLocale(locale: { label: string }) {
       calls.setLocale.push(locale.label);

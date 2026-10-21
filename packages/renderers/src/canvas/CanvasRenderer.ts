@@ -3,6 +3,7 @@ import { visibleRange, lineCount } from '../lines';
 import { groupLinesByBucket, samplePalette } from '../palette';
 import { projectionFor } from '../projection';
 import {
+  DIM_ALPHA,
   EMPTY_LINES,
   type LineSeriesData,
   type Renderer,
@@ -33,6 +34,7 @@ export class CanvasRenderer implements Renderer {
   private readonly lineWidth: number;
   private readonly alpha: number;
   private data: LineSeriesData = EMPTY_LINES;
+  private dimmed: Uint8Array | null = null;
   private groups: Uint32Array[] = [];
   private palette: string[] = samplePalette(() => '#4c78a8');
   private cssWidth = 1;
@@ -62,6 +64,10 @@ export class CanvasRenderer implements Renderer {
     this.groups = groupLinesByBucket(this.data.lineValue, this.palette.length);
   }
 
+  setDimmed(lines: Uint8Array | null): void {
+    this.dimmed = lines;
+  }
+
   resize(width: number, height: number, dpr: number): void {
     this.cssWidth = width;
     this.cssHeight = height;
@@ -85,29 +91,35 @@ export class CanvasRenderer implements Renderer {
     let drawCalls = 0;
     const x = data.x;
     const y = data.y;
-    for (let b = 0; b < this.groups.length; b++) {
-      const group = this.groups[b] as Uint32Array;
-      if (group.length === 0) continue;
-      ctx.beginPath();
-      let any = false;
-      for (const line of group) {
-        const { start, end } = visibleRange(data, line, x0, x1);
-        if (end <= start) continue;
-        any = true;
-        const px = (x[start] as number) * kx + bx;
-        const py = (y[start] as number) * ky + by;
-        ctx.moveTo(px, py);
-        // An isolated sample between gaps would otherwise be invisible.
-        if (end - start === 1) ctx.lineTo(px + 1, py);
-        for (let i = start + 1; i < end; i++) {
-          ctx.lineTo((x[i] as number) * kx + bx, (y[i] as number) * ky + by);
+    const dimmed = this.dimmed;
+    // Dimmed lines first, faint, so the selection draws over them (ADR 0015).
+    for (const pass of dimmed ? [1, 0] : [0]) {
+      ctx.globalAlpha = pass === 1 ? this.alpha * DIM_ALPHA : this.alpha;
+      for (let b = 0; b < this.groups.length; b++) {
+        const group = this.groups[b] as Uint32Array;
+        if (group.length === 0) continue;
+        ctx.beginPath();
+        let any = false;
+        for (const line of group) {
+          if (dimmed && (dimmed[line] === 1 ? 1 : 0) !== pass) continue;
+          const { start, end } = visibleRange(data, line, x0, x1);
+          if (end <= start) continue;
+          any = true;
+          const px = (x[start] as number) * kx + bx;
+          const py = (y[start] as number) * ky + by;
+          ctx.moveTo(px, py);
+          // An isolated sample between gaps would otherwise be invisible.
+          if (end - start === 1) ctx.lineTo(px + 1, py);
+          for (let i = start + 1; i < end; i++) {
+            ctx.lineTo((x[i] as number) * kx + bx, (y[i] as number) * ky + by);
+          }
+          points += end - start;
         }
-        points += end - start;
+        if (!any) continue;
+        ctx.strokeStyle = this.palette[b] ?? '#000';
+        ctx.stroke();
+        drawCalls++;
       }
-      if (!any) continue;
-      ctx.strokeStyle = this.palette[b] ?? '#000';
-      ctx.stroke();
-      drawCalls++;
     }
     ctx.globalAlpha = 1;
     return { points, drawCalls };

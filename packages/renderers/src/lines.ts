@@ -21,3 +21,42 @@ export function visibleRange(
 export function lineCount(data: LineSeriesData): number {
   return data.lineStarts.length - 1;
 }
+
+export interface DrawList {
+  /** Entries used in `firsts`/`counts`. */
+  readonly drawCount: number;
+  /** The first `dimmedCount` entries are dimmed lines, drawn first and fainter (ADR 0015). */
+  readonly dimmedCount: number;
+  readonly points: number;
+}
+
+/**
+ * Fills `firsts`/`counts` (one slot per line) with the visible part of each line that has at least
+ * two points, dimmed lines first. O(lines × log n): only the slice and the order change per frame (P6).
+ */
+export function fillDrawList(
+  data: LineSeriesData,
+  x0: number,
+  x1: number,
+  dimmed: Uint8Array | null,
+  firsts: Int32Array,
+  counts: Int32Array,
+): DrawList {
+  const lines = lineCount(data);
+  let drawCount = 0;
+  let dimmedCount = 0;
+  let points = 0;
+  for (const pass of dimmed ? [1, 0] : [0]) {
+    for (let k = 0; k < lines; k++) {
+      if (dimmed && (dimmed[k] === 1 ? 1 : 0) !== pass) continue;
+      const { start, end } = visibleRange(data, k, x0, x1);
+      if (end - start < 2) continue;
+      firsts[drawCount] = start;
+      counts[drawCount] = end - start;
+      drawCount++;
+      points += end - start;
+    }
+    if (pass === 1) dimmedCount = drawCount;
+  }
+  return { drawCount, dimmedCount, points };
+}

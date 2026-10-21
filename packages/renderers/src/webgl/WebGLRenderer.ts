@@ -1,7 +1,8 @@
 import { resizeCanvas } from '../dpr';
-import { visibleRange, lineCount } from '../lines';
+import { fillDrawList, lineCount } from '../lines';
 import { projectionFor } from '../projection';
 import {
+  DIM_ALPHA,
   EMPTY_LINES,
   type LineSeriesData,
   type Renderer,
@@ -79,6 +80,7 @@ export class WebGLRenderer implements Renderer {
   private ramp: Uint8Array = rampBytes(() => '#4c78a8');
   private firsts = new Int32Array(0);
   private counts = new Int32Array(0);
+  private dimmed: Uint8Array | null = null;
   private cssWidth = 1;
   private cssHeight = 1;
   private lost = false;
@@ -116,6 +118,10 @@ export class WebGLRenderer implements Renderer {
     this.uploadRamp();
   }
 
+  setDimmed(lines: Uint8Array | null): void {
+    this.dimmed = lines;
+  }
+
   resize(width: number, height: number, dpr: number): void {
     this.cssWidth = width;
     this.cssHeight = height;
@@ -130,17 +136,14 @@ export class WebGLRenderer implements Renderer {
     if (this.lost || !r) return { points: 0, drawCalls: 0 };
 
     const [x0, x1] = view.xDomain;
-    let drawCount = 0;
-    let points = 0;
-    const lines = lineCount(data);
-    for (let k = 0; k < lines; k++) {
-      const { start, end } = visibleRange(data, k, x0, x1);
-      if (end - start < 2) continue;
-      this.firsts[drawCount] = start;
-      this.counts[drawCount] = end - start;
-      drawCount++;
-      points += end - start;
-    }
+    const { drawCount, dimmedCount, points } = fillDrawList(
+      data,
+      x0,
+      x1,
+      this.dimmed,
+      this.firsts,
+      this.counts,
+    );
     if (drawCount === 0) return { points: 0, drawCalls: 0 };
 
     const { ky, by } = projectionFor(view);
@@ -153,21 +156,34 @@ export class WebGLRenderer implements Renderer {
     gl.uniform1f(r.u.ky, ky);
     gl.uniform1f(r.u.by, by);
     gl.uniform2f(r.u.size, this.cssWidth, this.cssHeight);
-    gl.uniform1f(r.u.alpha, this.alpha);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, r.ramp);
     gl.uniform1i(r.u.ramp, 0);
 
-    let drawCalls: number;
-    if (r.multiDraw) {
-      r.multiDraw.multiDrawArraysWEBGL(gl.LINE_STRIP, this.firsts, 0, this.counts, 0, drawCount);
-      drawCalls = 1;
-    } else {
-      for (let i = 0; i < drawCount; i++) {
-        gl.drawArrays(gl.LINE_STRIP, this.firsts[i] as number, this.counts[i] as number);
+    let drawCalls = 0;
+    const draw = (from: number, to: number) => {
+      if (to <= from) return;
+      if (r.multiDraw) {
+        r.multiDraw.multiDrawArraysWEBGL(
+          gl.LINE_STRIP,
+          this.firsts,
+          from,
+          this.counts,
+          from,
+          to - from,
+        );
+        drawCalls++;
+      } else {
+        for (let i = from; i < to; i++) {
+          gl.drawArrays(gl.LINE_STRIP, this.firsts[i] as number, this.counts[i] as number);
+        }
+        drawCalls += to - from;
       }
-      drawCalls = drawCount;
-    }
+    };
+    gl.uniform1f(r.u.alpha, this.alpha * DIM_ALPHA);
+    draw(0, dimmedCount);
+    gl.uniform1f(r.u.alpha, this.alpha);
+    draw(dimmedCount, drawCount);
     gl.bindVertexArray(null);
     return { points, drawCalls };
   }

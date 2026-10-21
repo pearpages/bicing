@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { DIM_ALPHA } from '../types';
 import { linesOf, VIEW } from '../testing';
 import { CanvasRenderer } from './CanvasRenderer';
 
@@ -16,7 +17,9 @@ function recordingCanvas() {
     beginPath: record('beginPath'),
     moveTo: record('moveTo'),
     lineTo: record('lineTo'),
-    stroke: record('stroke'),
+    stroke() {
+      calls.push({ op: 'stroke', args: [this.globalAlpha] });
+    },
     lineWidth: 1,
     globalAlpha: 1,
     lineJoin: 'miter',
@@ -91,5 +94,24 @@ describe('CanvasRenderer', () => {
     expect(() => {
       r.setData(huge);
     }).toThrow(RangeError);
+  });
+
+  test('dimmed lines are stroked first at a fraction of the alpha, then the rest', () => {
+    const { canvas, calls } = recordingCanvas();
+    const r = new CanvasRenderer({ canvas, alpha: 0.5 });
+    const line: [number, number][] = [
+      [0, 1],
+      [100, 3],
+    ];
+    r.setData(linesOf([line, line], [0, 0]));
+    r.setDimmed(Uint8Array.of(1, 0));
+    const stats = r.render(VIEW);
+    const strokes = calls.filter((c) => c.op === 'stroke').map((c) => c.args[0]);
+    expect(strokes).toEqual([0.5 * DIM_ALPHA, 0.5]);
+    expect(stats).toEqual({ points: 4, drawCalls: 2 });
+
+    r.setDimmed(null);
+    calls.length = 0;
+    expect(r.render(VIEW).drawCalls).toBe(1);
   });
 });

@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, expect, test } from 'vitest';
 import { linesOf, VIEW } from '../testing';
+import { DIM_ALPHA } from '../types';
 import { SvgRenderer } from './SvgRenderer';
 
 describe('SvgRenderer', () => {
@@ -58,5 +59,20 @@ describe('SvgRenderer', () => {
     expect(() => {
       r.setData(huge);
     }).toThrow(/at most 1000000/);
+  });
+
+  test('dimmed paths keep their color at a fraction of the opacity, also after new data', () => {
+    const r = new SvgRenderer({ alpha: 0.5 });
+    const line: [number, number][] = [
+      [0, 0],
+      [100, 10],
+    ];
+    r.setDimmed(Uint8Array.of(0, 1));
+    r.setData(linesOf([line, line]));
+    const opacity = () =>
+      [...r.element.querySelectorAll('path')].map((p) => Number(p.getAttribute('stroke-opacity')));
+    expect(opacity()).toEqual([0.5, 0.5 * DIM_ALPHA]);
+    r.setDimmed(null);
+    expect(opacity()).toEqual([0.5, 0.5]);
   });
 });

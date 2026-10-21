@@ -16,6 +16,7 @@ function fakeRenderer(kind: Renderer['kind'] = 'canvas', maxPoints = Number.MAX_
     maxPoints,
     setData: (data) => uploads.push(data),
     setColorScale: () => undefined,
+    setDimmed: () => undefined,
     resize: () => undefined,
     render: (view): RenderStats => {
       views.push(view);

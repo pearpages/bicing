@@ -12,6 +12,7 @@ const renderer = (): Renderer => ({
   maxPoints: Number.MAX_SAFE_INTEGER,
   setData: () => undefined,
   setColorScale: () => undefined,
+  setDimmed: () => undefined,
   resize: () => undefined,
   render: () => ({ points: 0, drawCalls: 0 }),
   destroy: () => undefined,

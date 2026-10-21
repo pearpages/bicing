@@ -10,7 +10,12 @@ export interface LineSeriesData {
   readonly lineStarts: Uint32Array;
   /** One value in [0, 1] per line, mapped through the color scale. */
   readonly lineValue: Float32Array;
+  /** The station each line belongs to, so a station-level selection can dim its lines (ADR 0015). */
+  readonly lineStation?: Uint16Array;
 }
+
+/** A dimmed line keeps this share of the renderer's alpha: present, but behind the selection. */
+export const DIM_ALPHA = 0.12;
 
 /** The plot area in CSS pixels, plus the visible data domain. */
 export interface Viewport {
@@ -43,6 +48,11 @@ export interface Renderer {
   setData(data: LineSeriesData): void;
   /** `interpolate` maps [0, 1] to a CSS color, e.g. a d3-scale-chromatic interpolator. */
   setColorScale(interpolate: (t: number) => string): void;
+  /**
+   * One flag per line of the current data, 1 = dimmed (filtered out, ADR 0015); null dims nothing.
+   * Only how lines are drawn changes: nothing is uploaded again (P6).
+   */
+  setDimmed(lines: Uint8Array | null): void;
   resize(width: number, height: number, dpr: number): void;
   render(view: Viewport): RenderStats;
   destroy(): void;

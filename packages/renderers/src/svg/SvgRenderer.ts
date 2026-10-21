@@ -1,6 +1,7 @@
 import { lineCount } from '../lines';
 import { projectionFor } from '../projection';
 import {
+  DIM_ALPHA,
   EMPTY_LINES,
   type LineSeriesData,
   type Renderer,
@@ -32,6 +33,7 @@ export class SvgRenderer implements Renderer {
   private readonly alpha: number;
   private data: LineSeriesData = EMPTY_LINES;
   private paths: SVGPathElement[] = [];
+  private dimmed: Uint8Array | null = null;
   private interpolate: (t: number) => string = () => '#4c78a8';
 
   constructor(options: SvgRendererOptions = {}) {
@@ -53,7 +55,6 @@ export class SvgRenderer implements Renderer {
       const path = document.createElementNS(SVG_NS, 'path');
       path.setAttribute('fill', 'none');
       path.setAttribute('stroke-width', String(this.lineWidth));
-      path.setAttribute('stroke-opacity', String(this.alpha));
       path.setAttribute('stroke-linejoin', 'round');
       this.element.append(path);
       this.paths.push(path);
@@ -95,9 +96,16 @@ export class SvgRenderer implements Renderer {
     this.element.remove();
   }
 
+  setDimmed(lines: Uint8Array | null): void {
+    this.dimmed = lines;
+    this.applyColors();
+  }
+
   private applyColors(): void {
     for (let k = 0; k < this.paths.length; k++) {
+      const alpha = this.dimmed?.[k] === 1 ? this.alpha * DIM_ALPHA : this.alpha;
       this.paths[k]?.setAttribute('stroke', this.interpolate(this.data.lineValue[k] ?? 0));
+      this.paths[k]?.setAttribute('stroke-opacity', String(alpha));
     }
   }
 }
