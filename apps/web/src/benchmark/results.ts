@@ -1,6 +1,7 @@
 import type { Decimation, RendererKind } from '@bicing/charts';
 import type { LoadError } from '../data/useDataset';
 import type { NumberFormats } from '../i18n/format';
+import { loadErrorText } from '../i18n/loadError';
 import type { Messages } from '../i18n/messages.ca';
 import type { MachineInfo } from './machine';
 import type { ScenarioMeasurement } from './runScenario';
@@ -52,8 +53,7 @@ export function resultNote(result: BenchmarkResult, text: Messages, fmt: NumberF
   const { error, measurement: m } = result;
   if (error) {
     if (error.kind === 'backgroundTab') return text.results.backgroundTab;
-    if (error.kind === 'load')
-      return text.app.loadFailed(fmt.int(error.failure.rows), error.failure.cause);
+    if (error.kind === 'load') return loadErrorText(error.failure, text, fmt);
     return error.message;
   }
   if (!m) return text.results.notRun;

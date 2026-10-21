@@ -22,7 +22,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 - [x] **T2.1** `tools/prepare-data`: discover resources with CKAN `package_show` (no hardcoded URLs); download with an idempotent cache under `data/`. _Done when:_ a second run downloads nothing.
 - [x] **T2.2** Extract the monthly 7z archives with 7z-wasm; read the CSVs with DuckDB (Node), selecting columns by header name; time from `last_reported`, deduplicated per (station, minute); join the station information; map IDs to dense indices; cast to the compact types, dropping and counting invalid rows; sort by (t, stationIdx). ADR 0012. _Done when:_ one month round-trips into the ObservationColumns schema, with tests on a fixture. _(Amended 2026-10-20: the archives hold CSV, not JSON snapshots.)_
 - [x] **T2.3** Write Parquet (one file per month plus a merged file) and `gaps.json` (missing days and months, detected, not assumed). _Done when:_ the known gaps appear in gaps.json.
-- [ ] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
+- [x] **T2.4** ADR: choosing the browser Parquet reader. Loading in the data worker, with zero-copy transfer into the existing protocol, from a configurable external base URL (CORS + range requests).
 - [ ] **T2.5** Multi-resolution aggregates (5 min / 1 h / 1 day min-max-mean per station), picked by the visible span, so zoomed-out views stay small (feeds D3, D5).
 - [ ] **T2.6** Gap handling from gaps.json: shade missing periods in the chart and state them in the tooltip; lines already break at gaps (P9).
 - [ ] **T2.7** Map view: ~500 stations as WebGL points colored by occupancy at a selected time; hover with flatbush over station positions (ADR 0008).
@@ -73,6 +73,7 @@ Check versions before adding anything (P25). Parquet in the browser: compare `hy
 
 ## Done
 
+- [x] 2026-10-20: T2.4 done — parquet-wasm in the data worker (ADR 0013; 107 ms vs 484 ms for hyparquet on a month); “Reals” in the app loads a real month in ~0.3 s (setembre del 2026: 4,443,182 points at 61 fps), checked in headless Chrome in both languages.
 - [x] 2026-10-20: T2.3 done — `pnpm prepare-data --build`: 364,565,534 readings from 561 stations in 89 monthly Parquet files + a merged one (1.19 GB), and `gaps.json` with the known gaps (2019-03 late start, 2025-10 unusable, 2025-11 missing, 2026-09 early end) plus 2020-03 and 2023-08 found in the data; 3 broken upstream archives handled (ADR 0012).
 - [x] 2026-10-20: T2.2 done — a cached month → `ObservationColumns` + `StationTable` in ~3 s (2026-09: 4,468,778 readings, 542 stations); stale reports and shifted capacities handled (ADR 0012).
 - [x] 2026-10-20: T2.1 done — `pnpm prepare-data` finds 180 monthly archives (~2.6 GB, 2019-03 → 2026-09) via CKAN and caches them in `data/raw`; a second run downloads nothing.

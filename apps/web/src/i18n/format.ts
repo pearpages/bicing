@@ -6,6 +6,8 @@ export interface NumberFormats {
   readonly ms: (value: number) => string;
   /** Milliseconds below a second, seconds above. */
   readonly duration: (ms: number) => string;
+  /** `YYYY-MM` as a month name, e.g. "setembre del 2026" / "September 2026". */
+  readonly month: (month: string) => string;
 }
 
 export function numberFormats(tag: string): NumberFormats {
@@ -22,10 +24,16 @@ export function numberFormats(tag: string): NumberFormats {
     return format.format(value);
   };
   const int = (value: number) => fixed(value, 0);
+  const monthName = new Intl.DateTimeFormat(tag, {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
   return {
     int,
     fixed,
     ms: (value) => `${fixed(value)} ms`,
     duration: (ms) => (ms < 1_000 ? `${int(ms)} ms` : `${fixed(ms / 1_000)} s`),
+    month: (month) => monthName.format(new Date(`${month}-01T00:00:00Z`)),
   };
 }

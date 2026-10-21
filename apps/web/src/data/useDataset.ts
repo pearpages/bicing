@@ -1,6 +1,7 @@
 import { createDataClient, createDataWorker, type GeneratedDataset } from '@bicing/data';
-import { markRaw, onBeforeUnmount, ref, shallowRef, type Ref, type ShallowRef } from 'vue';
+import { markRaw, onBeforeUnmount, shallowRef, type Ref, type ShallowRef } from 'vue';
 import { SEED } from './sizes';
+import { DATA_BASE_URL, sourceKey, type DataSource } from './source';
 
 export interface LoadTiming {
   readonly rows: number;
@@ -14,7 +15,7 @@ export interface LoadTiming {
 
 /** Kept as data, not a sentence, so the message follows the language when it's shown (P27). */
 export interface LoadError {
-  readonly rows: number;
+  readonly source: DataSource;
   /** The worker's own message: developer-facing, so it stays English (ADR 0011). */
   readonly cause: string;
 }
@@ -22,16 +23,18 @@ export interface LoadError {
 /** Thrown by the benchmark's configure step, so a result can say which load failed. */
 export class DatasetError extends Error {
   constructor(readonly failure: LoadError) {
-    super(`Couldn't generate ${String(failure.rows)} readings: ${failure.cause}`);
+    super(`Couldn't load ${sourceKey(failure.source)}: ${failure.cause}`);
   }
 }
 
 export interface Dataset {
   readonly current: ShallowRef<GeneratedDataset | null>;
-  readonly loading: Ref<number | null>;
+  /** Where `current` came from. */
+  readonly source: ShallowRef<DataSource | null>;
+  readonly loading: Ref<DataSource | null>;
   readonly error: Ref<LoadError | null>;
   readonly timing: ShallowRef<LoadTiming | null>;
-  load(rows: number): Promise<void>;
+  load(source: DataSource): Promise<void>;
   /** Call from the chart's first frame after new data, to close the time-to-first-chart measurement. */
   markFirstFrame(): void;
 }
@@ -44,49 +47,55 @@ export interface Dataset {
 export function useDataset(): Dataset {
   const client = createDataClient(createDataWorker());
   const current = shallowRef<GeneratedDataset | null>(null);
-  const loading = ref<number | null>(null);
+  const loadedSource = shallowRef<DataSource | null>(null);
+  const loading = shallowRef<DataSource | null>(null);
   const error = shallowRef<LoadError | null>(null);
   const timing = shallowRef<LoadTiming | null>(null);
   let latest = 0;
   let pendingFirstFrame: { startedAt: number; timing: LoadTiming } | null = null;
-  let inFlight: { rows: number; promise: Promise<void> } | null = null;
-  let loadedRows: number | null = null;
+  let inFlight: { key: string; promise: Promise<void> } | null = null;
+  let loadedKey: string | null = null;
 
-  /** Idempotent per size: a control's watcher and the benchmark can both ask for the same data. */
-  function load(rows: number): Promise<void> {
-    if (inFlight?.rows === rows) return inFlight.promise;
-    if (!inFlight && loadedRows === rows && current.value) return Promise.resolve();
-    const promise = fetchRows(rows).finally(() => {
+  /** Idempotent per source: a control's watcher and the benchmark can both ask for the same data. */
+  function load(source: DataSource): Promise<void> {
+    const key = sourceKey(source);
+    if (inFlight?.key === key) return inFlight.promise;
+    if (!inFlight && loadedKey === key && current.value) return Promise.resolve();
+    const promise = fetchSource(source, key).finally(() => {
       if (inFlight?.promise === promise) inFlight = null;
     });
-    inFlight = { rows, promise };
+    inFlight = { key, promise };
     return promise;
   }
 
-  async function fetchRows(rows: number): Promise<void> {
+  async function fetchSource(source: DataSource, key: string): Promise<void> {
     const request = ++latest;
     const startedAt = performance.now();
-    loading.value = rows;
+    loading.value = source;
     error.value = null;
     // Drop the previous dataset first: 50M rows next to 10M can exhaust the tab's memory.
     current.value = null;
-    loadedRows = null;
+    loadedSource.value = null;
+    loadedKey = null;
     try {
-      const dataset = await client.generate({ seed: SEED, rows });
+      const dataset = await (source.kind === 'synthetic'
+        ? client.generate({ seed: SEED, rows: source.rows })
+        : client.load({ baseUrl: DATA_BASE_URL, months: [source.month] }));
       if (request !== latest) return;
       const loaded: LoadTiming = {
-        rows,
+        rows: dataset.observations.length,
         loadMs: performance.now() - startedAt,
         workerMs: dataset.workerMs,
         firstChartMs: null,
       };
       timing.value = loaded;
       pendingFirstFrame = { startedAt, timing: loaded };
-      loadedRows = rows;
+      loadedKey = key;
+      loadedSource.value = source;
       current.value = markRaw(dataset);
     } catch (cause) {
       if (request !== latest) return;
-      error.value = { rows, cause: cause instanceof Error ? cause.message : String(cause) };
+      error.value = { source, cause: cause instanceof Error ? cause.message : String(cause) };
     } finally {
       if (request === latest) loading.value = null;
     }
@@ -103,5 +112,5 @@ export function useDataset(): Dataset {
     client.dispose();
   });
 
-  return { current, loading, error, timing, load, markFirstFrame };
+  return { current, source: loadedSource, loading, error, timing, load, markFirstFrame };
 }

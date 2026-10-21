@@ -47,7 +47,10 @@ const results: BenchmarkResult[] = [
     config: { renderer: 'svg', rows: 10_000_000, decimation: 'none' },
     measurement: null,
     firstChartMs: null,
-    error: { kind: 'load', failure: { rows: 10_000_000, cause: 'out of memory' } },
+    error: {
+      kind: 'load',
+      failure: { source: { kind: 'synthetic', rows: 10_000_000 }, cause: 'out of memory' },
+    },
   },
 ];
 

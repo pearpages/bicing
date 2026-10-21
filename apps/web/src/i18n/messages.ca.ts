@@ -28,11 +28,21 @@ export const ca = {
     days: (count: string) => `${count} dies`,
     chartArea: 'Bicicletes disponibles per estació',
     generating: (readings: string) => `Generant ${readings} lectures en un worker…`,
+    loadingMonth: (month: string) => `Carregant ${month} d'Open Data BCN en un worker…`,
+    realSummary: (readings: string, stations: string, month: string) =>
+      `${readings} lectures de ${stations} estacions, ${month}. Dades reals d'Open Data BCN.`,
+    loadMonthFailed: (month: string, cause: string) => `No s'ha pogut carregar ${month}: ${cause}.`,
+    realUnavailable: (url: string) =>
+      `No hi ha dades reals a ${url}. Genera-les amb pnpm prepare-data --build.`,
     loadFailed: (readings: string, cause: string) =>
       `No s'han pogut generar ${readings} lectures: ${cause}. Prova un conjunt de dades més petit.`,
     hint: "Fes servir la roda per fer zoom, arrossega per desplaçar-te i passa per sobre d'una línia per veure'n l'estació.",
   },
   controls: {
+    source: 'Dades',
+    sourceOptions: { synthetic: 'Sintètiques', real: 'Reals' },
+    month: 'Mes',
+    monthsLoading: 'Carregant la llista de mesos…',
     renderer: 'Motor de dibuix',
     svgTitle: 'Un <path> per línia, refet a cada fotograma. Limitat a 1M de punts.',
     readings: 'Lectures',
@@ -88,7 +98,7 @@ export const ca = {
     stale: "Es mostra la reducció anterior mentre fas zoom. S'afina quan t'atures.",
     skippedHint: 'Tria un conjunt de dades més petit o activa la reducció de punts.',
     loading: 'Càrrega',
-    generated: 'Generació al worker',
+    generated: 'Temps al worker (generar o carregar)',
     firstChart: 'Temps fins al primer gràfic',
     drawing: 'Dibuixant…',
   },

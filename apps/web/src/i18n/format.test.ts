@@ -17,6 +17,12 @@ describe('numberFormats', () => {
     expect(en.fixed(59.6, 0)).toBe('60');
   });
 
+  test('months are named in each language', () => {
+    // CLDR's Catalan form: "del" before a year, which is standard usage.
+    expect(ca.month('2026-09')).toBe('setembre del 2026');
+    expect(en.month('2026-09')).toBe('September 2026');
+  });
+
   test('durations switch to seconds at one second', () => {
     expect(ca.duration(573)).toBe('573 ms');
     expect(ca.duration(3_176)).toBe('3,2 s');

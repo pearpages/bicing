@@ -17,48 +17,24 @@ import { usePerfMonitor } from './benchmark/usePerfMonitor';
 import OccupancyLegend from './components/OccupancyLegend.vue';
 import PerfPanel from './components/PerfPanel.vue';
 import ResultsDialog from './components/ResultsDialog.vue';
-import SegmentedControl, { type Option } from './components/SegmentedControl.vue';
-import { DEFAULT_ROWS, SIZE_TIERS } from './data/sizes';
+import MonthSelect from './components/MonthSelect.vue';
+import SegmentedControl from './components/SegmentedControl.vue';
+import { useControlOptions } from './controls/useControlOptions';
 import { DatasetError, useDataset } from './data/useDataset';
-import { LANGUAGE_NAMES, LOCALES, type Locale } from './i18n/locales';
+import { useDatasetText } from './data/useDatasetText';
+import { useDataSource } from './data/useDataSource';
 import { chartLocale } from './i18n/chartLocale';
 import { useI18n } from './i18n/useI18n';
 import { occupancyScale, rampStops, useColorScheme } from './theme';
 
-const DECIMATIONS: readonly Decimation[] = ['none', 'minmax', 'lttb'];
-
 const { locale, t, fmt, setLocale } = useI18n();
-
-// Renderer names are product names, the same in every language; only the SVG hint is translated.
-const rendererOptions = computed<readonly Option<RendererKind>[]>(() => [
-  { value: 'svg', label: 'SVG', title: t.value.controls.svgTitle },
-  { value: 'canvas', label: 'Canvas 2D' },
-  { value: 'webgl', label: 'WebGL2' },
-]);
-const decimationOptions = computed<readonly Option<Decimation>[]>(() =>
-  DECIMATIONS.map((value) => ({ value, label: t.value.controls.decimationOptions[value] })),
-);
-const sizeOptions = computed<readonly Option<number>[]>(() =>
-  SIZE_TIERS.map((tier) => ({
-    value: tier.rows,
-    label: tier.label,
-    muted: tier.stress === true,
-    ...(tier.stress ? { title: t.value.controls.stressTitle } : {}),
-  })),
-);
-
-const languageOptions: readonly Option<Locale>[] = LOCALES.map((value) => ({
-  value,
-  label: LANGUAGE_NAMES[value],
-  lang: value,
-}));
-
+const options = useControlOptions();
 const language = computed({ get: () => locale.value, set: setLocale });
 const chartText = computed(() => chartLocale(locale.value, t.value));
 
 const renderer = ref<RendererKind>('webgl');
 const decimation = ref<Decimation>('none');
-const rows = ref(DEFAULT_ROWS);
+const { kind: sourceKind, rows, month, realMonths, source } = useDataSource();
 
 const dataset = useDataset();
 const perf = usePerfMonitor();
@@ -67,22 +43,7 @@ const colorScale = computed(() => occupancyScale(scheme.value));
 const stops = computed(() => rampStops(scheme.value));
 
 const series = computed(() => dataset.current.value?.series ?? null);
-const summary = computed(() => {
-  const data = dataset.current.value;
-  if (!data) return null;
-  const days = (data.series.xMax - data.series.xMin) / 1_440;
-  const { app } = t.value;
-  const { int } = fmt.value;
-  return app.summary(
-    int(data.series.x.length),
-    int(data.stations.length),
-    days < 2 ? app.hours(int(days * 24)) : app.days(int(days)),
-  );
-});
-const loadError = computed(() => {
-  const failure = dataset.error.value;
-  return failure ? t.value.app.loadFailed(fmt.value.int(failure.rows), failure.cause) : null;
-});
+const text = useDatasetText(dataset, sourceKind, realMonths);
 const progressText = computed(() => {
   const progress = benchmark.progress.value;
   if (!progress) return null;
@@ -118,8 +79,10 @@ const chartView = shallowRef<{ chart: ChartController | null } | null>(null);
 async function configure(config: BenchmarkConfig): Promise<number | null> {
   renderer.value = config.renderer;
   decimation.value = config.decimation;
+  // The benchmark matrix is synthetic sizes; real data gets its own benchmarks in T2.8.
+  sourceKind.value = 'synthetic';
   rows.value = config.rows;
-  await dataset.load(config.rows);
+  await dataset.load({ kind: 'synthetic', rows: config.rows });
   if (dataset.error.value) throw new DatasetError(dataset.error.value);
   await waitUntil(() => dataset.timing.value?.firstChartMs != null, 60_000);
   await waitFrames(2);
@@ -155,12 +118,16 @@ if (import.meta.env.DEV || new URLSearchParams(location.search).has('automation'
   });
 }
 
-watch(rows, (next) => void dataset.load(next));
+watch(source, (next) => {
+  if (next) void dataset.load(next);
+});
 // Each configuration is measured on its own; long frames from the last one shouldn't carry over.
-watch([renderer, decimation, rows], () => {
+watch([renderer, decimation, source], () => {
   perf.monitor.reset();
 });
-onMounted(() => void dataset.load(rows.value));
+onMounted(() => {
+  if (source.value) void dataset.load(source.value);
+});
 </script>
 
 <template>
@@ -169,7 +136,7 @@ onMounted(() => void dataset.load(rows.value));
       <div :class="classes.titleBlock">
         <h1 :class="classes.title">{{ t.meta.title }}</h1>
         <p :class="classes.summary">
-          {{ summary ?? t.app.tagline }}
+          {{ text.summary.value ?? t.app.tagline }}
         </p>
       </div>
       <div :class="classes.controls">
@@ -177,28 +144,42 @@ onMounted(() => void dataset.load(rows.value));
           v-model="renderer"
           :legend="t.controls.renderer"
           name="renderer"
-          :options="rendererOptions"
+          :options="options.renderer.value"
           :disabled="measuring"
         />
         <SegmentedControl
+          v-model="sourceKind"
+          :legend="t.controls.source"
+          name="source"
+          :options="options.source.value"
+          :disabled="measuring"
+        />
+        <SegmentedControl
+          v-if="sourceKind === 'synthetic'"
           v-model="rows"
           :legend="t.controls.readings"
           name="rows"
-          :options="sizeOptions"
+          :options="options.size.value"
+          :disabled="dataset.loading.value !== null || measuring"
+        />
+        <MonthSelect
+          v-else-if="realMonths.months.value"
+          v-model="month"
+          :months="realMonths.months.value"
           :disabled="dataset.loading.value !== null || measuring"
         />
         <SegmentedControl
           v-model="decimation"
           :legend="t.controls.decimation"
           name="decimation"
-          :options="decimationOptions"
+          :options="options.decimation.value"
           :disabled="measuring"
         />
         <div :class="classes.actions">
           <button
             type="button"
             :class="classes.primary"
-            :disabled="measuring"
+            :disabled="measuring || sourceKind === 'real'"
             @click="measureCurrent"
           >
             {{ t.controls.measureThis }}
@@ -216,7 +197,7 @@ onMounted(() => void dataset.load(rows.value));
           v-model="language"
           :legend="t.language.legend"
           name="language"
-          :options="languageOptions"
+          :options="options.language"
         />
       </div>
       <p v-if="progressText" :class="classes.progress" role="status">{{ progressText }}</p>
@@ -237,10 +218,10 @@ onMounted(() => void dataset.load(rows.value));
             @frame="onFrame"
           />
           <p v-if="dataset.loading.value !== null" :class="classes.status" role="status">
-            {{ t.app.generating(fmt.int(dataset.loading.value)) }}
+            {{ text.loading.value }}
           </p>
-          <p v-else-if="loadError" :class="[classes.status, classes.error]" role="alert">
-            {{ loadError }}
+          <p v-else-if="text.error.value" :class="[classes.status, classes.error]" role="alert">
+            {{ text.error.value }}
           </p>
         </div>
         <footer :class="classes.chartFooter">

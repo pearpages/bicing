@@ -33,6 +33,7 @@ pnpm build            # production build of apps/web
 pnpm prepare-data     # Open Data BCN archives → data/raw (~2.6 GB; --from/--to YYYY-MM, --dry-run)
 pnpm prepare-data --read-month 2026-09   # one cached month → columns, with a data-quality report
 pnpm prepare-data --build              # stage every month, publish data/parquet + gaps.json
+                                        # then pick “Reals” in the app: dev/preview serve data/parquet at /data/
 ```
 
 Docker (static build served by nginx, with cross-origin isolation headers):
