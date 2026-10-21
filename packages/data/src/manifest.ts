@@ -20,21 +20,74 @@ export function monthFile(month: string): string {
   return `observations-${month}.parquet`;
 }
 
-/** The monthly files, oldest first. The merged file (`month: null`) is left out. */
-export function parseManifest(body: unknown): MonthEntry[] {
+export type Level = 'raw' | '1h' | '1d';
+
+/** One published file, as `manifest.json` describes it (T2.3, T2.5a). */
+export interface CatalogFile {
+  readonly file: string;
+  readonly level: Level;
+  readonly month: string | null;
+  readonly rows: number;
+  readonly bytes: number;
+  /** First and last `t` in the file, minutes since the epoch; `null` when it's empty. */
+  readonly t0: number | null;
+  readonly t1: number | null;
+}
+
+/**
+ * The names T2.3 and T2.5a write. A file name goes into a URL, so anything else in the manifest
+ * is rejected rather than fetched (security.md).
+ */
+function expectedName(level: unknown, month: unknown, file: unknown): boolean {
+  if (typeof file !== 'string') return false;
+  if (level === 'raw')
+    return month === null
+      ? file === 'observations.parquet'
+      : isMonth(month) && file === monthFile(month);
+  if (month !== null) return false;
+  if (level === '1d') return file === 'agg-1d.parquet';
+  return level === '1h' && /^agg-1h-\d{4}\.parquet$/.test(file);
+}
+
+const isTime = (v: unknown): v is number | null =>
+  v === null || (typeof v === 'number' && Number.isSafeInteger(v) && v >= 0);
+
+/** Every file in `manifest.json`, checked. Throws on anything unexpected. */
+export function parseCatalog(body: unknown): CatalogFile[] {
   const files: unknown =
     typeof body === 'object' && body !== null ? (body as { files?: unknown }).files : undefined;
   if (!Array.isArray(files)) throw new Error('manifest.json has no file list');
-  const months: MonthEntry[] = [];
-  for (const file of files) {
-    if (typeof file !== 'object' || file === null) continue;
-    const { month, rows, bytes } = file as Record<string, unknown>;
-    if (month === null) continue;
-    if (!isMonth(month) || typeof rows !== 'number' || typeof bytes !== 'number')
+  return files.map((entry): CatalogFile => {
+    const { file, level, month, rows, bytes, t0, t1 } =
+      typeof entry === 'object' && entry !== null ? (entry as Record<string, unknown>) : {};
+    // Manifests from before T2.5a have no level: their files are all raw.
+    const fileLevel = level ?? 'raw';
+    if (
+      !expectedName(fileLevel, month, file) ||
+      typeof rows !== 'number' ||
+      typeof bytes !== 'number' ||
+      !isTime(t0) ||
+      !isTime(t1)
+    )
       throw new Error('manifest.json has an invalid entry');
-    months.push({ month, rows, bytes });
-  }
-  return months.sort((a, b) => a.month.localeCompare(b.month));
+    return {
+      file: file as string,
+      level: fileLevel as Level,
+      month: month as string | null,
+      rows,
+      bytes,
+      t0,
+      t1,
+    };
+  });
+}
+
+/** The monthly raw files, oldest first. */
+export function parseManifest(body: unknown): MonthEntry[] {
+  return parseCatalog(body)
+    .filter((f): f is CatalogFile & { month: string } => f.level === 'raw' && f.month !== null)
+    .map(({ month, rows, bytes }) => ({ month, rows, bytes }))
+    .sort((a, b) => a.month.localeCompare(b.month));
 }
 
 /** For the main thread: a small JSON file, fetched once to fill the month picker. */

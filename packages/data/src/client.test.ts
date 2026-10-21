@@ -58,6 +58,8 @@ function generated(id: number, rows: number): WorkerResponse {
     observations: allocateObservations(rows),
     stations,
     series,
+    rows,
+    view: null,
     elapsedMs: 1,
   };
 }
@@ -74,8 +76,8 @@ describe('createDataClient', () => {
 
     reply(generated(rb.id, 20));
     reply(generated(ra.id, 10));
-    expect((await a).observations.length).toBe(10);
-    expect((await b).observations.length).toBe(20);
+    expect((await a).rows).toBe(10);
+    expect((await b).rows).toBe(20);
   });
 
   test('error responses reject only their own request', async () => {
@@ -95,7 +97,7 @@ describe('createDataClient', () => {
     const a = client.generate({ seed: 1, rows: 5 });
     reply(generated(999, 1));
     reply(generated(requests[0]?.id ?? -1, 5));
-    expect((await a).observations.length).toBe(5);
+    expect((await a).rows).toBe(5);
   });
 
   test('a worker crash rejects everything pending', async () => {

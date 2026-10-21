@@ -1,7 +1,8 @@
 import type { ObservationColumns, StationSeries, StationTable } from '@bicing/core';
 import type { GenerateOptions } from '@bicing/synthetic';
 import type { LoadOptions } from './load';
-import type { WorkerRequest, WorkerResponse } from './protocol';
+import type { ViewInfo, WorkerRequest, WorkerResponse } from './protocol';
+import type { ViewOptions } from './view';
 
 /** The slice of the Worker API the client uses, so tests can pass a fake. */
 export interface WorkerLike {
@@ -12,9 +13,14 @@ export interface WorkerLike {
 }
 
 export interface GeneratedDataset {
-  readonly observations: ObservationColumns;
+  /** `null` for an aggregate view. */
+  readonly observations: ObservationColumns | null;
   readonly stations: StationTable;
   readonly series: StationSeries;
+  /** Readings, or buckets for an aggregate view. */
+  readonly rows: number;
+  /** Set for a whole-history view (T2.5b). */
+  readonly view: ViewInfo | null;
   /** Generation or loading + series building inside the worker, excluding the transfer hop. */
   readonly workerMs: number;
 }
@@ -23,6 +29,8 @@ export interface DataClient {
   generate(options: GenerateOptions): Promise<GeneratedDataset>;
   /** Real data: Parquet months from a base URL (ADR 0013). */
   load(options: LoadOptions): Promise<GeneratedDataset>;
+  /** One level of the whole history over a window (T2.5b, ADR 0014). */
+  view(options: ViewOptions): Promise<GeneratedDataset>;
   /** Rejects every pending request and terminates the worker. */
   dispose(): void;
 }
@@ -58,6 +66,8 @@ export function createDataClient(worker: WorkerLike): DataClient {
         observations: response.observations,
         stations: response.stations,
         series: response.series,
+        rows: response.rows,
+        view: response.view,
         workerMs: response.elapsedMs,
       });
     }
@@ -78,6 +88,7 @@ export function createDataClient(worker: WorkerLike): DataClient {
   return {
     generate: (options) => send((id) => ({ id, type: 'generate', options })),
     load: (options) => send((id) => ({ id, type: 'load', options })),
+    view: (options) => send((id) => ({ id, type: 'view', options })),
     dispose() {
       rejectAll(new Error('Data client disposed'));
       worker.terminate();

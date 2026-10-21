@@ -15,7 +15,8 @@ describe('handleRequest', () => {
     });
     if (response.type !== 'dataset') throw new Error('expected a dataset response');
     expect(response.id).toBe(7);
-    expect(response.observations.length).toBe(1_000);
+    expect(response.rows).toBe(1_000);
+    expect(response.view).toBeNull();
     // 6 observation columns + lat, lon, capacity + 6 series arrays.
     expect(transfer).toHaveLength(15);
     expect(response.series.offsets).toHaveLength(response.stations.length + 1);
@@ -27,7 +28,8 @@ describe('handleRequest', () => {
       type: 'generate',
       options: { seed: 2, rows: 5_000 },
     });
-    if (response.type !== 'dataset') throw new Error('expected a dataset response');
+    if (response.type !== 'dataset' || !response.observations)
+      throw new Error('expected a dataset response with observations');
     const before = Array.from(response.observations.bikesMech.subarray(0, 10));
 
     // structuredClone with a transfer list has the same semantics as postMessage.
@@ -37,8 +39,8 @@ describe('handleRequest', () => {
     expect(response.observations.bikesMech.byteLength).toBe(0);
     expect(response.stations.lat.byteLength).toBe(0);
     expect(response.series.x.byteLength).toBe(0);
-    expect(received.observations.t).toHaveLength(5_000);
-    expect(Array.from(received.observations.bikesMech.subarray(0, 10))).toEqual(before);
+    expect(received.observations?.t).toHaveLength(5_000);
+    expect(Array.from(received.observations?.bikesMech.subarray(0, 10) ?? [])).toEqual(before);
   });
 
   test('failures become error responses with the same id', async () => {

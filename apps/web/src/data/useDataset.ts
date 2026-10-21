@@ -83,7 +83,7 @@ export function useDataset(): Dataset {
         : client.load({ baseUrl: DATA_BASE_URL, months: [source.month] }));
       if (request !== latest) return;
       const loaded: LoadTiming = {
-        rows: dataset.observations.length,
+        rows: dataset.rows,
         loadMs: performance.now() - startedAt,
         workerMs: dataset.workerMs,
         firstChartMs: null,

@@ -1,5 +1,11 @@
 import type { ObservationColumns, StationTable } from '@bicing/core';
-import { concatMonths, validateColumns, type DecodeParquet } from './columns';
+import {
+  concatMonths,
+  RAW_SPEC,
+  readColumns,
+  validateColumns,
+  type DecodeParquet,
+} from './columns';
 import { monthFile } from './manifest';
 import { parseStations } from './stations';
 
@@ -15,7 +21,7 @@ export interface LoadDeps {
   readonly fetch: typeof fetch;
 }
 
-async function fetchOk(deps: LoadDeps, url: URL): Promise<Response> {
+export async function fetchOk(deps: LoadDeps, url: URL): Promise<Response> {
   const response = await deps.fetch(url);
   if (!response.ok) throw new Error(`${url.pathname} answered HTTP ${String(response.status)}`);
   return response;
@@ -40,7 +46,7 @@ export async function loadMonths(
   const parts = [];
   for (const [i, file] of files.entries()) {
     const month = options.months[i] ?? '';
-    const columns = await deps.decode(await file);
+    const columns = readColumns(await deps.decode(await file), RAW_SPEC, month);
     validateColumns(columns, stations.length, month);
     parts.push(columns);
   }

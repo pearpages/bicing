@@ -2,17 +2,17 @@ import { Status } from '@bicing/core';
 import { tableFromArrays, tableToIPC } from 'apache-arrow';
 import * as parquet from 'parquet-wasm/node';
 import { describe, expect, test } from 'vitest';
-import { columnsFromArrowIpc, type DecodedColumns } from './columns';
+import { RAW_SPEC, readColumns } from './columns';
 import { createHandler } from './handler';
 import { loadMonths } from './load';
-import { fetchManifest, parseManifest } from './manifest';
+import { fetchManifest, parseCatalog, parseManifest } from './manifest';
 import { parseStations } from './stations';
 
-/** Node's parquet-wasm initialises synchronously; the worker uses the ESM build instead (ADR 0013). */
-// The executor turns a decoding error into a rejection, as the worker's async decoder does.
+// Node's parquet-wasm initialises synchronously; the executor turns a decoding error into a
+// rejection, as the worker's async decoder does.
 const decode = (bytes: Uint8Array) =>
-  new Promise<DecodedColumns>((resolve) => {
-    resolve(columnsFromArrowIpc(parquet.readParquet(bytes).intoIPCStream(), 'test'));
+  new Promise<Uint8Array>((resolve) => {
+    resolve(parquet.readParquet(bytes).intoIPCStream());
   });
 
 /** A real Parquet file in T2.3's schema, written by parquet-wasm with Snappy. */
@@ -99,7 +99,7 @@ describe('loadMonths', () => {
       options: { baseUrl: BASE, months: ['2026-08', '2026-09'] },
     });
     if (response.type !== 'dataset') throw new Error(`expected a dataset, got ${response.type}`);
-    expect(response.observations.length).toBe(5);
+    expect(response.rows).toBe(5);
     expect(response.series.offsets).toHaveLength(3);
     expect(transfer.length).toBeGreaterThan(0);
   });
@@ -138,11 +138,12 @@ describe('loadMonths', () => {
     await expect(reject(goodFiles(), ['../stations'])).rejects.toThrow(/not a month/);
   });
 
-  test('rejects a Parquet file with the wrong column types', async () => {
+  test('rejects a Parquet file with the wrong column types', () => {
     const table = tableFromArrays({ stationIdx: Float64Array.from([0]), t: Uint32Array.from([1]) });
     const wrong = parquet.writeParquet(parquet.Table.fromIPCStream(tableToIPC(table, 'stream')));
-    const columns: Promise<DecodedColumns> = decode(wrong);
-    await expect(columns).rejects.toThrow(/column stationIdx is missing or not Uint16Array/);
+    expect(() => readColumns(parquet.readParquet(wrong).intoIPCStream(), RAW_SPEC, 'test')).toThrow(
+      /column stationIdx is missing or not Uint16Array/,
+    );
   });
 });
 
@@ -154,18 +155,51 @@ describe('stations.json and manifest.json', () => {
     expect(() => parseStations(null)).toThrow(/not an object/);
   });
 
+  const file = (name: string, level: string, month: string | null, t0 = 0) => ({
+    file: name,
+    level,
+    month,
+    rows: 3,
+    bytes: 12,
+    t0,
+    t1: t0 + 10,
+  });
+
   test('parseManifest lists the monthly files, oldest first, without the merged one', async () => {
     const manifest = {
       files: [
-        { file: 'observations-2026-09.parquet', month: '2026-09', rows: 2, bytes: 10 },
-        { file: 'observations-2026-08.parquet', month: '2026-08', rows: 3, bytes: 12 },
-        { file: 'observations.parquet', month: null, rows: 5, bytes: 20 },
+        file('observations-2026-09.parquet', 'raw', '2026-09'),
+        file('observations-2026-08.parquet', 'raw', '2026-08'),
+        file('observations.parquet', 'raw', null),
+        file('agg-1d.parquet', '1d', null),
+        file('agg-1h-2026.parquet', '1h', null),
       ],
     };
     expect(parseManifest(manifest).map((m) => m.month)).toEqual(['2026-08', '2026-09']);
     expect(await fetchManifest(BASE, host({ 'manifest.json': manifest }))).toHaveLength(2);
-    expect(() => parseManifest({ files: [{ month: '2026-13', rows: 1, bytes: 1 }] })).toThrow(
-      /invalid entry/,
-    );
+    expect(parseCatalog(manifest).map((f) => f.level)).toEqual(['raw', 'raw', 'raw', '1d', '1h']);
+  });
+
+  test('parseCatalog rejects any file name T2.3 and T2.5a do not write', () => {
+    for (const bad of [
+      file('../stations.json', 'raw', '2026-09'),
+      file('observations-2026-08.parquet', 'raw', '2026-09'),
+      file('agg-1h-26.parquet', '1h', null),
+      file('agg-1d.parquet', '1h', null),
+      file('agg-1d.parquet', '1d', '2026-09'),
+      file('https://evil.example/x.parquet', '1d', null),
+      { ...file('agg-1d.parquet', '1d', null), t0: -1 },
+    ])
+      expect(() => parseCatalog({ files: [bad] }), JSON.stringify(bad)).toThrow(/invalid entry/);
+    // Manifests from before T2.5a have no level: their files are raw.
+    const legacy = {
+      file: 'observations-2026-09.parquet',
+      month: '2026-09',
+      rows: 1,
+      bytes: 1,
+      t0: 0,
+      t1: 1,
+    };
+    expect(parseCatalog({ files: [legacy] })[0]?.level).toBe('raw');
   });
 });
